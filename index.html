@@ -6,6 +6,7 @@
     <title>Suivi de Dettes</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -162,8 +163,9 @@
                     </div>
                 </header>
                 <div class="flex space-x-2 mb-4">
-                    <button id="add-global-repayment-btn" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition"><i class="fas fa-hand-holding-usd mr-2"></i>Encaisser</button>
-                    <button id="export-csv-btn" class="w-full bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-file-csv mr-2"></i>Exporter</button>
+                    <button id="add-global-repayment-btn" class="flex-1 bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition"><i class="fas fa-hand-holding-usd mr-2"></i>Encaisser</button>
+                    <button id="export-pdf-btn" class="flex-1 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition"><i class="fas fa-file-pdf mr-2"></i>PDF</button>
+                    <button id="export-csv-btn" class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-file-csv mr-2"></i>CSV</button>
                 </div>
                 <div id="transaction-history" class="space-y-3"></div>
             </section>
@@ -765,6 +767,173 @@
         showToast('Export CSV réussi');
     }
     
+    async function exportToPDF(contactId) {
+        const contact = contacts.find(c => c.id === contactId);
+        if (!contact) return;
+        
+        const contactTransactions = transactions
+            .filter(t => t.contactId === contactId)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        if (contactTransactions.length === 0) {
+            showToast('Aucune transaction à exporter', 'error');
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // En-tête
+        doc.setFontSize(20);
+        doc.setFont(undefined, 'bold');
+        doc.text('RELEVÉ DE DETTES', 105, 20, { align: 'center' });
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Date d'édition : ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, 105, 30, { align: 'center' });
+        
+        // Informations du débiteur
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Débiteur', 20, 45);
+        
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'normal');
+        doc.text(contact.name, 20, 52);
+        
+        // Calcul des totaux
+        let totalPrete = 0;
+        let totalRembourse = 0;
+        let totalDu = 0;
+        
+        contactTransactions.forEach(t => {
+            totalPrete += t.amount;
+            totalRembourse += (t.paidAmount || 0);
+            const due = t.amount - (t.paidAmount || 0);
+            if (due > 0) totalDu += due;
+        });
+        
+        // Résumé financier - Encadré
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, 60, 170, 30, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(20, 60, 170, 30);
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text('RÉSUMÉ FINANCIER', 25, 68);
+        
+        doc.setFont(undefined, 'normal');
+        doc.text(`Total prêté :`, 25, 76);
+        doc.text(`${formatCurrency(totalPrete)}`, 80, 76);
+        
+        doc.text(`Total remboursé :`, 25, 82);
+        doc.setTextColor(0, 150, 0);
+        doc.text(`${formatCurrency(totalRembourse)}`, 80, 82);
+        doc.setTextColor(0, 0, 0);
+        
+        doc.setFont(undefined, 'bold');
+        doc.text(`TOTAL DÛ :`, 120, 82);
+        doc.setTextColor(200, 0, 0);
+        doc.setFontSize(12);
+        doc.text(`${formatCurrency(totalDu)}`, 160, 82);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        
+        // Tableau des transactions
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(12);
+        doc.text('DÉTAIL DES TRANSACTIONS', 20, 105);
+        
+        let yPos = 115;
+        
+        // En-têtes du tableau
+        doc.setFillColor(70, 130, 180);
+        doc.rect(20, yPos - 5, 170, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.text('Date', 22, yPos);
+        doc.text('Description', 45, yPos);
+        doc.text('Montant', 110, yPos);
+        doc.text('Remb.', 140, yPos);
+        doc.text('Reste dû', 165, yPos);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, 'normal');
+        yPos += 10;
+        
+        // Lignes du tableau
+        contactTransactions.forEach((t, index) => {
+            if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            const due = t.amount - (t.paidAmount || 0);
+            const isFullyPaid = t.isPaid || due < 0.01;
+            
+            // Alternance de couleur de fond
+            if (index % 2 === 0) {
+                doc.setFillColor(250, 250, 250);
+                doc.rect(20, yPos - 5, 170, 8, 'F');
+            }
+            
+            doc.setFontSize(8);
+            doc.text(new Date(t.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }), 22, yPos);
+            
+            // Limiter la description à 30 caractères
+            const desc = t.description.length > 30 ? t.description.substring(0, 27) + '...' : t.description;
+            doc.text(`${desc} (${t.category})`, 45, yPos);
+            
+            doc.text(formatCurrency(t.amount), 110, yPos);
+            
+            if (t.paidAmount && t.paidAmount > 0) {
+                doc.setTextColor(0, 150, 0);
+                doc.text(formatCurrency(t.paidAmount), 140, yPos);
+                doc.setTextColor(0, 0, 0);
+            } else {
+                doc.text('-', 140, yPos);
+            }
+            
+            if (isFullyPaid) {
+                doc.setTextColor(0, 150, 0);
+                doc.setFont(undefined, 'bold');
+                doc.text('PAYÉ', 165, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(0, 0, 0);
+            } else {
+                doc.setTextColor(200, 0, 0);
+                doc.setFont(undefined, 'bold');
+                doc.text(formatCurrency(due), 165, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(0, 0, 0);
+            }
+            
+            yPos += 8;
+        });
+        
+        // Ligne de séparation finale
+        doc.setDrawColor(70, 130, 180);
+        doc.setLineWidth(0.5);
+        doc.line(20, yPos, 190, yPos);
+        
+        // Pied de page
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' });
+            doc.text('Document généré par Suivi de Dettes', 105, 295, { align: 'center' });
+        }
+        
+        // Téléchargement
+        const fileName = `releve_${contact.name.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        showToast('PDF généré avec succès');
+    }
+    
     async function transferTransaction(transactionId, newContactId) {
         if (!currentUserId || !transactionId || !newContactId) return;
         const transaction = transactions.find(t => t.id === transactionId);
@@ -946,6 +1115,10 @@
     
     document.getElementById('export-csv-btn').addEventListener('click', () => {
         exportToCSV(contactDetailsView.dataset.currentContactId);
+    });
+    
+    document.getElementById('export-pdf-btn').addEventListener('click', () => {
+        exportToPDF(contactDetailsView.dataset.currentContactId);
     });
     
     document.getElementById('cancel-transfer-btn').addEventListener('click', () => closeModal(transferModal));
