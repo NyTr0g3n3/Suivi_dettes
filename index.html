@@ -12,7 +12,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            overscroll-behavior: none; /* Empêche le "pull-to-refresh" */
+            overscroll-behavior: none;
         }
         #empty-state {
             text-align: center;
@@ -20,12 +20,12 @@
         }
         #empty-state .icon {
             font-size: 5rem;
-            color: #d1d5db; /* gray-300 */
+            color: #d1d5db;
         }
         #empty-state p {
             margin-top: 1rem;
-            font-size: 1.125rem; /* text-lg */
-            color: #6b7280; /* gray-500 */
+            font-size: 1.125rem;
+            color: #6b7280;
         }
         .modal-enter {
             animation: fadeIn 0.3s ease-out;
@@ -40,6 +40,23 @@
         @keyframes fadeOut {
             from { opacity: 1; transform: scale(1); }
             to { opacity: 0; transform: scale(0.95); }
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+        .toast.success { background-color: #10b981; }
+        .toast.error { background-color: #ef4444; }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 </head>
@@ -58,7 +75,7 @@
         </div>
     </div>
 
-    <!-- Conteneur principal de l'application (initialement caché) -->
+    <!-- Conteneur principal de l'application -->
     <div id="app-container" class="hidden">
         <div id="app" class="max-w-4xl mx-auto md:p-4">
             
@@ -119,7 +136,7 @@
         </div>
     </div>
     
-    <!-- Modales (inchangées) -->
+    <!-- Modales -->
     <div id="transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h2 id="modal-title" class="text-xl font-bold mb-4">Nouveau Prêt</h2>
@@ -204,21 +221,22 @@
     import { getFirestore, collection, query, where, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- Configuration Firebase ---
-const firebaseConfig = {
-  apiKey: "AIzaSyCEEf5fYsGEpF3sSmKnKdUsyAVBmBq1CII",
-  authDomain: "suivi-dettes.firebaseapp.com",
-  projectId: "suivi-dettes",
-  storageBucket: "suivi-dettes.firebasestorage.app",
-  messagingSenderId: "688459270431",
-  appId: "1:688459270431:web:a7d7a9691a49984bf9c82a",
-  measurementId: "G-LCT4B4L53Q"
-};
+    const firebaseConfig = {
+        apiKey: "AIzaSyCEEf5fYsGEpF3sSmKnKdUsyAVBmBq1CII",
+        authDomain: "suivi-dettes.firebaseapp.com",
+        projectId: "suivi-dettes",
+        storageBucket: "suivi-dettes.firebasestorage.app",
+        messagingSenderId: "688459270431",
+        appId: "1:688459270431:web:a7d7a9691a49984bf9c82a",
+        measurementId: "G-LCT4B4L53Q"
+    };
     
     // --- Initialisation Firebase ---
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
 
+    // --- Variables globales ---
     let currentUserId = null;
     let contacts = [];
     let transactions = [];
@@ -240,6 +258,18 @@ const firebaseConfig = {
     const repaymentModal = document.getElementById('repayment-modal');
     const deleteConfirmModal = document.getElementById('delete-confirm-modal');
 
+    // --- Système de notifications ---
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-in forwards';
+            setTimeout(() => document.body.removeChild(toast), 300);
+        }, 3000);
+    }
+
     // --- Authentification ---
     onAuthStateChanged(auth, (user) => {
         contactsUnsubscribe();
@@ -257,7 +287,7 @@ const firebaseConfig = {
             currentUserId = null;
             contacts = [];
             transactions = [];
-            renderDashboard(); // Pour vider l'UI
+            renderDashboard();
             
             loginView.classList.remove('hidden');
             appContainer.classList.add('hidden');
@@ -268,17 +298,20 @@ const firebaseConfig = {
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
+            showToast('Connexion réussie !');
         } catch (error) {
             console.error("Erreur de connexion avec Google:", error);
-            alert("Une erreur est survenue lors de la connexion. Veuillez réessayer.");
+            showToast('Erreur de connexion. Veuillez réessayer.', 'error');
         }
     }
 
     async function signOutUser() {
         try {
             await signOut(auth);
+            showToast('Déconnexion réussie');
         } catch (error) {
             console.error("Erreur de déconnexion:", error);
+            showToast('Erreur lors de la déconnexion', 'error');
         }
     }
 
@@ -289,15 +322,18 @@ const firebaseConfig = {
     function loadData() {
         if (!currentUserId) return;
         
-        const contactsRef = collection(db, 'artifacts', appId, 'users', currentUserId, 'contacts');
+        const contactsRef = collection(db, 'users', currentUserId, 'contacts');
         contactsUnsubscribe = onSnapshot(contactsRef, (snapshot) => {
             contacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderAllContactsList();
             updateContactDropdown();
             renderDashboard();
+        }, (error) => {
+            console.error("Erreur lors du chargement des contacts:", error);
+            showToast('Erreur de chargement des contacts', 'error');
         });
 
-        const transactionsRef = collection(db, 'artifacts', appId, 'users', currentUserId, 'transactions');
+        const transactionsRef = collection(db, 'users', currentUserId, 'transactions');
         transactionsUnsubscribe = onSnapshot(transactionsRef, (snapshot) => {
             transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             renderDashboard();
@@ -305,10 +341,13 @@ const firebaseConfig = {
             if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
                 renderContactDetails(currentContactId);
             }
+        }, (error) => {
+            console.error("Erreur lors du chargement des transactions:", error);
+            showToast('Erreur de chargement des transactions', 'error');
         });
     }
 
-    // --- Fonctions Utilitaires et Rendu (inchangées) ---
+    // --- Fonctions Utilitaires et Rendu ---
     function formatCurrency(value) {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
     }
@@ -474,50 +513,78 @@ const firebaseConfig = {
         setTimeout(() => modal.classList.add('hidden'), 300);
     }
     
-    // --- Logique Métier (Firestore) (inchangée, mais maintenant liée à currentUserId) ---
+    // --- Logique Métier (Firestore) ---
     async function addContact(name) {
         if (!currentUserId || !name.trim()) return;
         try {
-            await addDoc(collection(db, 'artifacts', appId, 'users', currentUserId, 'contacts'), { name: name.trim() });
-        } catch (error) { console.error("Erreur ajout contact:", error); }
+            await addDoc(collection(db, 'users', currentUserId, 'contacts'), { name: name.trim() });
+            showToast('Contact ajouté avec succès');
+        } catch (error) { 
+            console.error("Erreur ajout contact:", error); 
+            showToast('Erreur lors de l\'ajout du contact', 'error');
+        }
     }
 
     async function deleteContact(contactId) {
         if (!currentUserId) return;
         try {
             const batch = writeBatch(db);
-            const q = query(collection(db, 'artifacts', appId, 'users', currentUserId, 'transactions'), where("contactId", "==", contactId));
+            const q = query(collection(db, 'users', currentUserId, 'transactions'), where("contactId", "==", contactId));
             const snapshot = await getDocs(q);
             snapshot.forEach(doc => { batch.delete(doc.ref); });
-            batch.delete(doc(db, 'artifacts', appId, 'users', currentUserId, 'contacts', contactId));
+            batch.delete(doc(db, 'users', currentUserId, 'contacts', contactId));
             await batch.commit();
             if (contactDetailsView.dataset.currentContactId === contactId) showDashboard();
-        } catch (error) { console.error("Erreur suppression contact:", error); }
+            showToast('Contact supprimé avec succès');
+        } catch (error) { 
+            console.error("Erreur suppression contact:", error); 
+            showToast('Erreur lors de la suppression', 'error');
+        }
     }
     
     async function saveTransaction(data) {
         if (!currentUserId) return;
-        const transactionsRef = collection(db, 'artifacts', appId, 'users', currentUserId, 'transactions');
+        const transactionsRef = collection(db, 'users', currentUserId, 'transactions');
         try {
             if (data.id) {
-                const docRef = doc(db, transactionsRef, data.id);
+                const docRef = doc(db, 'users', currentUserId, 'transactions', data.id);
                 const existingTransaction = transactions.find(t=>t.id===data.id) || {};
                 await updateDoc(docRef, {
-                    contactId: data.contactId, amount: data.amount, description: data.description, category: data.category, date: data.date, isPaid: data.amount <= (existingTransaction.paidAmount || 0)
+                    contactId: data.contactId, 
+                    amount: data.amount, 
+                    description: data.description, 
+                    category: data.category, 
+                    date: data.date, 
+                    isPaid: data.amount <= (existingTransaction.paidAmount || 0)
                 });
+                showToast('Transaction modifiée avec succès');
             } else {
                  await addDoc(transactionsRef, {
-                    contactId: data.contactId, amount: data.amount, description: data.description, category: data.category, date: data.date, isPaid: false, paidAmount: 0
+                    contactId: data.contactId, 
+                    amount: data.amount, 
+                    description: data.description, 
+                    category: data.category, 
+                    date: data.date, 
+                    isPaid: false, 
+                    paidAmount: 0
                 });
+                showToast('Transaction ajoutée avec succès');
             }
-        } catch (error) { console.error("Erreur sauvegarde transaction:", error); }
+        } catch (error) { 
+            console.error("Erreur sauvegarde transaction:", error); 
+            showToast('Erreur lors de la sauvegarde', 'error');
+        }
     }
     
     async function deleteTransaction(transactionId) {
         if (!currentUserId) return;
         try {
-            await deleteDoc(doc(db, 'artifacts', appId, 'users', currentUserId, 'transactions', transactionId));
-        } catch (error) { console.error("Erreur suppression transaction:", error); }
+            await deleteDoc(doc(db, 'users', currentUserId, 'transactions', transactionId));
+            showToast('Transaction supprimée avec succès');
+        } catch (error) { 
+            console.error("Erreur suppression transaction:", error); 
+            showToast('Erreur lors de la suppression', 'error');
+        }
     }
 
     async function saveRepayment(transactionId, amount) {
@@ -526,23 +593,32 @@ const firebaseConfig = {
         if (!transaction) return;
         try {
             const newPaidAmount = (transaction.paidAmount || 0) + amount;
-            await updateDoc(doc(db, 'artifacts', appId, 'users', currentUserId, 'transactions', transactionId), {
-                paidAmount: newPaidAmount, isPaid: newPaidAmount >= transaction.amount
+            await updateDoc(doc(db, 'users', currentUserId, 'transactions', transactionId), {
+                paidAmount: newPaidAmount, 
+                isPaid: newPaidAmount >= transaction.amount
             });
-            await updateDoc(doc(db, 'artifacts', appId, 'users', currentUserId, 'contacts', transaction.contactId), { lastRepaymentDate: new Date().toISOString() });
-        } catch (error) { console.error("Erreur sauvegarde remboursement:", error); }
+            await updateDoc(doc(db, 'users', currentUserId, 'contacts', transaction.contactId), { 
+                lastRepaymentDate: new Date().toISOString() 
+            });
+            showToast('Remboursement enregistré avec succès');
+        } catch (error) { 
+            console.error("Erreur sauvegarde remboursement:", error); 
+            showToast('Erreur lors du remboursement', 'error');
+        }
     }
     
     async function saveGlobalRepayment(contactId, totalRepayment) {
         if (!currentUserId || totalRepayment <= 0) return;
         const batch = writeBatch(db);
         let remainingRepayment = totalRepayment;
-        const unpaidTransactions = transactions.filter(t => t.contactId === contactId && !t.isPaid).sort((a, b) => new Date(a.date) - new Date(b.date));
+        const unpaidTransactions = transactions
+            .filter(t => t.contactId === contactId && !t.isPaid)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
 
         for (const t of unpaidTransactions) {
             if (remainingRepayment <= 0) break;
             const due = t.amount - (t.paidAmount || 0);
-            const docRef = doc(db, 'artifacts', appId, 'users', currentUserId, 'transactions', t.id);
+            const docRef = doc(db, 'users', currentUserId, 'transactions', t.id);
             if (remainingRepayment >= due) {
                 batch.update(docRef, { paidAmount: t.amount, isPaid: true });
                 remainingRepayment -= due;
@@ -553,17 +629,32 @@ const firebaseConfig = {
         }
         try {
             await batch.commit();
-            await updateDoc(doc(db, 'artifacts', appId, 'users', currentUserId, 'contacts', contactId), { lastRepaymentDate: new Date().toISOString() });
-        } catch (error) { console.error("Erreur lors du remboursement global:", error); }
+            await updateDoc(doc(db, 'users', currentUserId, 'contacts', contactId), { 
+                lastRepaymentDate: new Date().toISOString() 
+            });
+            showToast('Remboursement global enregistré avec succès');
+        } catch (error) { 
+            console.error("Erreur lors du remboursement global:", error); 
+            showToast('Erreur lors du remboursement global', 'error');
+        }
     }
 
     function exportToCSV(contactId) {
         const contact = contacts.find(c => c.id === contactId);
         if (!contact) return;
-        const contactTransactions = transactions.filter(t => t.contactId === contactId).sort((a, b) => new Date(a.date) - new Date(b.date));
+        const contactTransactions = transactions
+            .filter(t => t.contactId === contactId)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
         let csvContent = "data:text/csv;charset=utf-8,Date,Description,Catégorie,Montant,Montant Remboursé,Statut\r\n";
         contactTransactions.forEach(t => {
-            const row = [new Date(t.date).toLocaleDateString('fr-FR'), `"${t.description.replace(/"/g, '""')}"`, t.category, t.amount, (t.paidAmount || 0), t.isPaid ? "Remboursé" : "Dû"].join(',');
+            const row = [
+                new Date(t.date).toLocaleDateString('fr-FR'), 
+                `"${t.description.replace(/"/g, '""')}"`, 
+                t.category, 
+                t.amount, 
+                (t.paidAmount || 0), 
+                t.isPaid ? "Remboursé" : "Dû"
+            ].join(',');
             csvContent += row + "\r\n";
         });
         const link = document.createElement("a");
@@ -572,10 +663,12 @@ const firebaseConfig = {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        showToast('Export CSV réussi');
     }
     
     // --- Event Listeners ---
     document.getElementById('back-to-dashboard-btn').addEventListener('click', showDashboard);
+    
     addTransactionBtn.addEventListener('click', () => {
         document.getElementById('transaction-form').reset();
         document.getElementById('transaction-id').value = '';
@@ -583,8 +676,10 @@ const firebaseConfig = {
         document.getElementById('date').valueAsDate = new Date();
         openModal(transactionModal);
     });
+    
     document.getElementById('manage-contacts-btn').addEventListener('click', () => openModal(contactsModal));
     document.getElementById('cancel-transaction-btn').addEventListener('click', () => closeModal(transactionModal));
+    
     document.getElementById('transaction-form').addEventListener('submit', (e) => {
         e.preventDefault();
         saveTransaction({
@@ -597,13 +692,16 @@ const firebaseConfig = {
         });
         closeModal(transactionModal);
     });
+    
     document.getElementById('close-contacts-modal-btn').addEventListener('click', () => closeModal(contactsModal));
+    
     document.getElementById('add-contact-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const input = document.getElementById('new-contact-name');
         addContact(input.value);
         input.value = '';
     });
+    
     document.getElementById('all-contacts-list').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-contact-btn');
         if (deleteBtn) {
@@ -611,7 +709,9 @@ const firebaseConfig = {
             showDeleteConfirmation('contact', deleteBtn.dataset.id, `Supprimer ${contact.name} et toutes ses transactions ?`);
         }
     });
+    
     document.getElementById('cancel-repayment-btn').addEventListener('click', () => closeModal(repaymentModal));
+    
     document.getElementById('repayment-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const transactionId = document.getElementById('repayment-transaction-id').value;
@@ -623,10 +723,12 @@ const firebaseConfig = {
         }
         closeModal(repaymentModal);
     });
+    
     document.getElementById('transaction-history').addEventListener('click', (e) => {
         const payBtn = e.target.closest('.pay-btn');
         const deleteBtn = e.target.closest('.delete-transaction-btn');
         const editBtn = e.target.closest('.edit-transaction-btn');
+        
         if (payBtn) {
             const transaction = transactions.find(t => t.id === payBtn.dataset.id);
             if (transaction) {
@@ -641,6 +743,7 @@ const firebaseConfig = {
                 openModal(repaymentModal);
             }
         }
+        
         if (editBtn) {
             const t = transactions.find(t => t.id === editBtn.dataset.id);
             if(t) {
@@ -655,17 +758,21 @@ const firebaseConfig = {
                 openModal(transactionModal);
             }
         }
+        
         if (deleteBtn) {
             showDeleteConfirmation('transaction', deleteBtn.dataset.id, 'Supprimer cette transaction ?');
         }
     });
+    
     function showDeleteConfirmation(type, id, message) {
         document.getElementById('delete-target-type').value = type;
         document.getElementById('delete-target-id').value = id;
         document.getElementById('delete-confirm-message').textContent = message;
         openModal(deleteConfirmModal);
     }
+    
     document.getElementById('cancel-delete-btn').addEventListener('click', () => closeModal(deleteConfirmModal));
+    
     document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
         const type = document.getElementById('delete-target-type').value;
         const id = document.getElementById('delete-target-id').value;
@@ -673,11 +780,14 @@ const firebaseConfig = {
         else if (type === 'transaction') await deleteTransaction(id);
         closeModal(deleteConfirmModal);
     });
+    
     document.getElementById('add-global-repayment-btn').addEventListener('click', () => {
         const contactId = contactDetailsView.dataset.currentContactId;
         const contact = contacts.find(c => c.id === contactId);
         if (!contact) return;
-        const totalDue = transactions.filter(t => t.contactId === contactId && !t.isPaid).reduce((acc, t) => acc + (t.amount - (t.paidAmount || 0)), 0);
+        const totalDue = transactions
+            .filter(t => t.contactId === contactId && !t.isPaid)
+            .reduce((acc, t) => acc + (t.amount - (t.paidAmount || 0)), 0);
         document.getElementById('repayment-form').reset();
         document.getElementById('repayment-transaction-id').value = '';
         document.getElementById('repayment-context-text').classList.add('hidden');
@@ -686,10 +796,10 @@ const firebaseConfig = {
         document.getElementById('repayment-amount').max = totalDue.toFixed(2);
         openModal(repaymentModal);
     });
+    
     document.getElementById('export-csv-btn').addEventListener('click', () => {
         exportToCSV(contactDetailsView.dataset.currentContactId);
     });
 </script>
 </body>
 </html>
-
