@@ -12,7 +12,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            overscroll-behavior: none;
+            overscroll-behavior: none; /* Empêche le "pull-to-refresh" */
         }
         #empty-state {
             text-align: center;
@@ -20,12 +20,12 @@
         }
         #empty-state .icon {
             font-size: 5rem;
-            color: #d1d5db;
+            color: #d1d5db; /* gray-300 */
         }
         #empty-state p {
             margin-top: 1rem;
-            font-size: 1.125rem;
-            color: #6b7280;
+            font-size: 1.125rem; /* text-lg */
+            color: #6b7280; /* gray-500 */
         }
         .modal-enter {
             animation: fadeIn 0.3s ease-out;
@@ -40,23 +40,6 @@
         @keyframes fadeOut {
             from { opacity: 1; transform: scale(1); }
             to { opacity: 0; transform: scale(0.95); }
-        }
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 9999;
-            animation: slideIn 0.3s ease-out;
-        }
-        .toast.success { background-color: #10b981; }
-        .toast.error { background-color: #ef4444; }
-        @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
         }
     </style>
 </head>
@@ -75,7 +58,7 @@
         </div>
     </div>
 
-    <!-- Conteneur principal de l'application -->
+    <!-- Conteneur principal de l'application (initialement caché) -->
     <div id="app-container" class="hidden">
         <div id="app" class="max-w-4xl mx-auto md:p-4">
             
@@ -136,7 +119,7 @@
         </div>
     </div>
     
-    <!-- Modales -->
+    <!-- Modales (inchangées) -->
     <div id="transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h2 id="modal-title" class="text-xl font-bold mb-4">Nouveau Prêt</h2>
@@ -221,17 +204,38 @@
     import { getFirestore, collection, query, where, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // --- Configuration Firebase ---
+    // !! IMPORTANT !!
+    // Collez ici la configuration de VOTRE projet Firebase que vous avez copiée.
+    // L'exemple ci-dessous est un placeholder et ne fonctionnera pas.
     const firebaseConfig = {
-        apiKey: "AIzaSyCEEf5fYsGEpF3sSmKnKdUsyAVBmBq1CII",
-        authDomain: "suivi-dettes.firebaseapp.com",
-        projectId: "suivi-dettes",
-        storageBucket: "suivi-dettes.firebasestorage.app",
-        messagingSenderId: "688459270431",
-        appId: "1:688459270431:web:a7d7a9691a49984bf9c82a",
-        measurementId: "G-LCT4B4L53Q"
+      apiKey: "VOTRE_API_KEY",
+      authDomain: "VOTRE_PROJET.firebaseapp.com",
+      projectId: "VOTRE_PROJET_ID",
+      storageBucket: "VOTRE_PROJET.appspot.com",
+      messagingSenderId: "VOTRE_SENDER_ID",
+      appId: "VOTRE_APP_ID"
     };
+
+    // L'identifiant de l'application est maintenant fixe pour assurer que le chemin de la base de données est stable.
+    const appId = 'suivi-de-dettes';
     
     // --- Initialisation Firebase ---
+    // On vérifie que le projectId n'est pas un placeholder avant d'initialiser
+    if (firebaseConfig.projectId === "VOTRE_PROJET_ID") {
+        document.body.innerHTML = `
+            <div class="flex items-center justify-center min-h-screen bg-gray-100">
+                <div class="text-center p-8 bg-white shadow-lg rounded-xl max-w-sm w-full">
+                    <i class="fas fa-exclamation-triangle fa-3x text-red-500 mb-4"></i>
+                    <h1 class="text-xl font-bold text-gray-800 mb-2">Configuration requise</h1>
+                    <p class="text-gray-600">
+                        Veuillez mettre à jour le fichier <code>index.html</code> avec votre propre configuration Firebase pour que l'application puisse se connecter à la base de données.
+                    </p>
+                </div>
+            </div>
+        `;
+        throw new Error("Configuration Firebase manquante. Veuillez mettre à jour le fichier index.html.");
+    }
+    
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
@@ -803,3 +807,4 @@
 </script>
 </body>
 </html>
+
