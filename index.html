@@ -192,9 +192,15 @@
             <form id="repayment-form">
                 <input type="hidden" id="repayment-transaction-id">
                 <p id="repayment-context-text" class="mb-2">Montant dû : <span id="repayment-due-amount" class="font-bold"></span></p>
-                <div class="mb-4">
-                    <label for="repayment-amount" class="block text-sm font-medium text-gray-700">Montant remboursé (€)</label>
-                    <input type="number" id="repayment-amount" step="0.01" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="repayment-amount" class="block text-sm font-medium text-gray-700">Montant remboursé (€)</label>
+                        <input type="number" id="repayment-amount" step="0.01" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="repayment-date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="repayment-date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
                 </div>
                 <div class="flex justify-end space-x-3">
                     <button type="button" id="cancel-repayment-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
@@ -590,7 +596,7 @@
         }
     }
 
-    async function saveRepayment(transactionId, amount) {
+    async function saveRepayment(transactionId, amount, repaymentDate) {
         if (!currentUserId || amount <= 0) return;
         const transaction = transactions.find(t => t.id === transactionId);
         if (!transaction) return;
@@ -601,7 +607,7 @@
                 isPaid: newPaidAmount >= transaction.amount
             });
             await updateDoc(doc(db, 'users', currentUserId, 'contacts', transaction.contactId), { 
-                lastRepaymentDate: new Date().toISOString() 
+                lastRepaymentDate: repaymentDate || new Date().toISOString()
             });
             showToast('Remboursement enregistré avec succès');
         } catch (error) { 
@@ -610,7 +616,7 @@
         }
     }
     
-    async function saveGlobalRepayment(contactId, totalRepayment) {
+    async function saveGlobalRepayment(contactId, totalRepayment, repaymentDate) {
         if (!currentUserId || totalRepayment <= 0) return;
         const batch = writeBatch(db);
         let remainingRepayment = totalRepayment;
@@ -633,7 +639,7 @@
         try {
             await batch.commit();
             await updateDoc(doc(db, 'users', currentUserId, 'contacts', contactId), { 
-                lastRepaymentDate: new Date().toISOString() 
+                lastRepaymentDate: repaymentDate || new Date().toISOString()
             });
             showToast('Remboursement global enregistré avec succès');
         } catch (error) { 
@@ -719,10 +725,12 @@
         e.preventDefault();
         const transactionId = document.getElementById('repayment-transaction-id').value;
         const amount = parseFloat(document.getElementById('repayment-amount').value);
+        const repaymentDate = document.getElementById('repayment-date').valueAsDate.toISOString();
+        
         if (transactionId) {
-            saveRepayment(transactionId, amount);
+            saveRepayment(transactionId, amount, repaymentDate);
         } else {
-            saveGlobalRepayment(contactDetailsView.dataset.currentContactId, amount);
+            saveGlobalRepayment(contactDetailsView.dataset.currentContactId, amount, repaymentDate);
         }
         closeModal(repaymentModal);
     });
@@ -741,6 +749,7 @@
                 document.getElementById('repayment-due-amount').textContent = formatCurrency(due);
                 document.getElementById('repayment-amount').value = due.toFixed(2);
                 document.getElementById('repayment-amount').max = due.toFixed(2);
+                document.getElementById('repayment-date').valueAsDate = new Date();
                 document.getElementById('repayment-context-text').classList.remove('hidden');
                 repaymentModal.querySelector('h2').textContent = 'Remboursement';
                 openModal(repaymentModal);
@@ -797,6 +806,7 @@
         repaymentModal.querySelector('h2').textContent = `Encaisser pour ${contact.name}`;
         document.getElementById('repayment-amount').value = totalDue.toFixed(2);
         document.getElementById('repayment-amount').max = totalDue.toFixed(2);
+        document.getElementById('repayment-date').valueAsDate = new Date();
         openModal(repaymentModal);
     });
     
