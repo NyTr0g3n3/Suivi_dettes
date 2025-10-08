@@ -13,7 +13,40 @@
         body {
             font-family: 'Inter', sans-serif;
             overscroll-behavior: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
+        
+        /* Mode sombre */
+        body.dark-mode {
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        body.dark-mode .bg-white { background-color: #1f2937; }
+        body.dark-mode .bg-gray-50 { background-color: #111827; }
+        body.dark-mode .bg-gray-100 { background-color: #1f2937; }
+        body.dark-mode .bg-gray-200 { background-color: #374151; }
+        body.dark-mode .text-gray-800 { color: #f3f4f6; }
+        body.dark-mode .text-gray-700 { color: #d1d5db; }
+        body.dark-mode .text-gray-600 { color: #9ca3af; }
+        body.dark-mode .text-gray-500 { color: #6b7280; }
+        body.dark-mode .text-gray-900 { color: #f9fafb; }
+        body.dark-mode .border-gray-300 { border-color: #4b5563; }
+        body.dark-mode .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3); }
+        body.dark-mode .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
+        body.dark-mode .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        body.dark-mode .hover\:bg-gray-50:hover { background-color: #374151; }
+        body.dark-mode .hover\:bg-gray-100:hover { background-color: #374151; }
+        body.dark-mode .hover\:bg-gray-300:hover { background-color: #4b5563; }
+        body.dark-mode .hover\:bg-gray-400:hover { background-color: #6b7280; }
+        body.dark-mode input, body.dark-mode select { 
+            background-color: #374151; 
+            color: #f3f4f6;
+            border-color: #4b5563;
+        }
+        body.dark-mode .bg-blue-50 { background-color: #1e3a5f; }
+        body.dark-mode .text-blue-700 { color: #93c5fd; }
+        body.dark-mode .text-blue-900 { color: #dbeafe; }
+        
         #empty-state {
             text-align: center;
             padding: 50px 20px;
@@ -21,6 +54,9 @@
         #empty-state .icon {
             font-size: 5rem;
             color: #d1d5db;
+        }
+        body.dark-mode #empty-state .icon {
+            color: #4b5563;
         }
         #empty-state p {
             margin-top: 1rem;
@@ -88,6 +124,9 @@
                              <p id="user-info" class="text-xs text-gray-500 truncate"></p>
                         </div>
                         <div class="flex items-center space-x-4">
+                            <button id="toggle-dark-mode-btn" class="text-gray-600 hover:text-yellow-500" title="Mode sombre">
+                                <i class="fas fa-moon fa-lg"></i>
+                            </button>
                             <button id="manage-contacts-btn" class="text-gray-600 hover:text-blue-600"><i class="fas fa-users fa-lg"></i></button>
                             <button id="sign-out-btn" class="text-gray-600 hover:text-red-600"><i class="fas fa-sign-out-alt fa-lg"></i></button>
                         </div>
@@ -219,6 +258,29 @@
             </div>
         </div>
     </div>
+    <div id="transfer-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4">Transférer la dette</h2>
+            <form id="transfer-form">
+                <input type="hidden" id="transfer-transaction-id">
+                <p id="transfer-info" class="mb-4 text-sm text-gray-600"></p>
+                <div class="mb-4">
+                    <label for="transfer-to-contact" class="block text-sm font-medium text-gray-700">Transférer à</label>
+                    <select id="transfer-to-contact" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"></select>
+                </div>
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                    <p class="text-sm text-yellow-700">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        La transaction sera transférée avec tous ses détails (montant, date, remboursements partiels).
+                    </p>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-transfer-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
+                    <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">Transférer</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 <script type="module">
     // Importations Firebase
@@ -263,6 +325,7 @@
     const contactsModal = document.getElementById('contacts-modal');
     const repaymentModal = document.getElementById('repayment-modal');
     const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+    const transferModal = document.getElementById('transfer-modal');
 
     // --- Système de notifications ---
     function showToast(message, type = 'success') {
@@ -275,6 +338,31 @@
             setTimeout(() => document.body.removeChild(toast), 300);
         }, 3000);
     }
+
+    // --- Mode sombre ---
+    function initDarkMode() {
+        const darkMode = localStorage.getItem('darkMode') === 'true';
+        if (darkMode) {
+            document.body.classList.add('dark-mode');
+            updateDarkModeIcon(true);
+        }
+    }
+
+    function toggleDarkMode() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', isDark);
+        updateDarkModeIcon(isDark);
+    }
+
+    function updateDarkModeIcon(isDark) {
+        const icon = document.querySelector('#toggle-dark-mode-btn i');
+        if (icon) {
+            icon.className = isDark ? 'fas fa-sun fa-lg' : 'fas fa-moon fa-lg';
+        }
+    }
+
+    // Initialiser le mode sombre au chargement
+    initDarkMode();
 
     // --- Authentification ---
     onAuthStateChanged(auth, (user) => {
@@ -323,6 +411,7 @@
 
     signInBtn.addEventListener('click', signInWithGoogle);
     signOutBtn.addEventListener('click', signOutUser);
+    document.getElementById('toggle-dark-mode-btn').addEventListener('click', toggleDarkMode);
     
     // --- Chargement des données ---
     function loadData() {
@@ -458,6 +547,7 @@
                 </div>
                 <div class="flex justify-end space-x-2 mt-2">
                     ${!isFullyPaid ? `<button data-id="${t.id}" class="pay-btn bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-green-200">Rembourser</button>` : ''}
+                    <button data-id="${t.id}" class="transfer-btn bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-purple-200"><i class="fas fa-exchange-alt"></i> Transférer</button>
                     <button data-id="${t.id}" class="edit-transaction-btn text-gray-400 hover:text-blue-500"><i class="fas fa-pen"></i></button>
                     <button data-id="${t.id}" class="delete-transaction-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
                 </div>
@@ -675,6 +765,36 @@
         showToast('Export CSV réussi');
     }
     
+    async function transferTransaction(transactionId, newContactId) {
+        if (!currentUserId || !transactionId || !newContactId) return;
+        const transaction = transactions.find(t => t.id === transactionId);
+        if (!transaction || transaction.contactId === newContactId) return;
+        
+        try {
+            await updateDoc(doc(db, 'users', currentUserId, 'transactions', transactionId), {
+                contactId: newContactId
+            });
+            showToast('Transaction transférée avec succès');
+        } catch (error) {
+            console.error("Erreur lors du transfert:", error);
+            showToast('Erreur lors du transfert', 'error');
+        }
+    }
+    
+    function updateTransferContactDropdown(excludeContactId) {
+        const select = document.getElementById('transfer-to-contact');
+        select.innerHTML = '<option value="">Sélectionner un contact</option>';
+        contacts
+            .filter(c => c.id !== excludeContactId)
+            .sort((a,b) => a.name.localeCompare(b.name))
+            .forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.name;
+                select.appendChild(option);
+            });
+    }
+    
     // --- Event Listeners ---
     document.getElementById('back-to-dashboard-btn').addEventListener('click', showDashboard);
     
@@ -739,6 +859,7 @@
         const payBtn = e.target.closest('.pay-btn');
         const deleteBtn = e.target.closest('.delete-transaction-btn');
         const editBtn = e.target.closest('.edit-transaction-btn');
+        const transferBtn = e.target.closest('.transfer-btn');
         
         if (payBtn) {
             const transaction = transactions.find(t => t.id === payBtn.dataset.id);
@@ -773,6 +894,19 @@
         
         if (deleteBtn) {
             showDeleteConfirmation('transaction', deleteBtn.dataset.id, 'Supprimer cette transaction ?');
+        }
+        
+        if (transferBtn) {
+            const transaction = transactions.find(t => t.id === transferBtn.dataset.id);
+            if (transaction) {
+                const fromContact = contacts.find(c => c.id === transaction.contactId);
+                document.getElementById('transfer-form').reset();
+                document.getElementById('transfer-transaction-id').value = transaction.id;
+                document.getElementById('transfer-info').textContent = 
+                    `Transaction: ${transaction.description} (${formatCurrency(transaction.amount)}) de ${fromContact?.name || 'Contact inconnu'}`;
+                updateTransferContactDropdown(transaction.contactId);
+                openModal(transferModal);
+            }
         }
     });
     
@@ -812,6 +946,16 @@
     
     document.getElementById('export-csv-btn').addEventListener('click', () => {
         exportToCSV(contactDetailsView.dataset.currentContactId);
+    });
+    
+    document.getElementById('cancel-transfer-btn').addEventListener('click', () => closeModal(transferModal));
+    
+    document.getElementById('transfer-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const transactionId = document.getElementById('transfer-transaction-id').value;
+        const newContactId = document.getElementById('transfer-to-contact').value;
+        transferTransaction(transactionId, newContactId);
+        closeModal(transferModal);
     });
 </script>
 </body>
