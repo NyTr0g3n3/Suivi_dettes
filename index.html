@@ -157,17 +157,35 @@
             <section id="contact-details-view" class="hidden p-4">
                 <header class="flex items-center mb-4">
                     <button id="back-to-dashboard-btn" class="mr-4 text-gray-600 hover:text-blue-600"><i class="fas fa-arrow-left fa-lg"></i></button>
-                    <div>
+                    <div class="flex-grow">
                         <h2 id="details-contact-name" class="text-2xl font-bold"></h2>
                         <p class="text-gray-500">Total dû : <span id="details-total-due" class="font-semibold"></span></p>
                     </div>
                 </header>
+                
+                <!-- Barre de recherche -->
+                <div class="mb-4">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="transaction-search" 
+                            placeholder="Rechercher une transaction..." 
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        >
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+                
                 <div class="flex space-x-2 mb-4">
                     <button id="add-global-repayment-btn" class="flex-1 bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition"><i class="fas fa-hand-holding-usd mr-2"></i>Encaisser</button>
                     <button id="export-pdf-btn" class="flex-1 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition"><i class="fas fa-file-pdf mr-2"></i>PDF</button>
                     <button id="export-csv-btn" class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-file-csv mr-2"></i>CSV</button>
                 </div>
                 <div id="transaction-history" class="space-y-3"></div>
+                <div id="no-results-message" class="hidden text-center text-gray-500 mt-8">
+                    <i class="fas fa-search text-4xl mb-2"></i>
+                    <p>Aucune transaction trouvée</p>
+                </div>
             </section>
     
             <!-- Bouton d'action flottant -->
@@ -436,7 +454,8 @@
             renderDashboard();
             const currentContactId = contactDetailsView.dataset.currentContactId;
             if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
-                renderContactDetails(currentContactId);
+                const searchQuery = document.getElementById('transaction-search').value;
+                renderContactDetails(currentContactId, searchQuery);
             }
         }, (error) => {
             console.error("Erreur lors du chargement des transactions:", error);
@@ -509,13 +528,13 @@
         }
     }
     
-    function renderContactDetails(contactId) {
+    function renderContactDetails(contactId, searchQuery = '') {
         const contact = contacts.find(c => c.id === contactId);
         if (!contact) return;
 
         document.getElementById('details-contact-name').textContent = contact.name;
         
-        const contactTransactions = transactions
+        let contactTransactions = transactions
             .filter(t => t.contactId === contactId)
             .sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -525,13 +544,34 @@
         }, 0);
         document.getElementById('details-total-due').textContent = formatCurrency(totalDue);
         
+        // Filtrer par recherche si une requête existe
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            contactTransactions = contactTransactions.filter(t => 
+                t.description.toLowerCase().includes(query) ||
+                t.category.toLowerCase().includes(query) ||
+                t.amount.toString().includes(query) ||
+                new Date(t.date).toLocaleDateString('fr-FR').includes(query)
+            );
+        }
+        
         const historyContainer = document.getElementById('transaction-history');
+        const noResultsMessage = document.getElementById('no-results-message');
         historyContainer.innerHTML = '';
 
         if (contactTransactions.length === 0) {
-            historyContainer.innerHTML = `<p class="text-center text-gray-500 mt-8">Aucune transaction avec ${contact.name}.</p>`;
+            historyContainer.classList.add('hidden');
+            noResultsMessage.classList.remove('hidden');
+            if (searchQuery.trim()) {
+                noResultsMessage.querySelector('p').textContent = `Aucune transaction trouvée pour "${searchQuery}"`;
+            } else {
+                noResultsMessage.querySelector('p').textContent = `Aucune transaction avec ${contact.name}.`;
+            }
             return;
         }
+        
+        historyContainer.classList.remove('hidden');
+        noResultsMessage.classList.add('hidden');
 
         contactTransactions.forEach(t => {
             const isFullyPaid = t.isPaid || (t.amount - (t.paidAmount || 0) < 0.01);
@@ -594,6 +634,7 @@
         contactDetailsView.classList.add('hidden');
         contactDetailsView.dataset.currentContactId = '';
         addTransactionBtn.classList.remove('hidden');
+        document.getElementById('transaction-search').value = '';
     }
 
     function showContactDetails(contactId) {
@@ -601,6 +642,7 @@
         contactDetailsView.classList.remove('hidden');
         addTransactionBtn.classList.add('hidden');
         contactDetailsView.dataset.currentContactId = contactId;
+        document.getElementById('transaction-search').value = '';
         renderContactDetails(contactId);
     }
     
@@ -1124,6 +1166,14 @@
     
     document.getElementById('export-pdf-btn').addEventListener('click', () => {
         exportToPDF(contactDetailsView.dataset.currentContactId);
+    });
+    
+    // Recherche en temps réel
+    document.getElementById('transaction-search').addEventListener('input', (e) => {
+        const contactId = contactDetailsView.dataset.currentContactId;
+        if (contactId) {
+            renderContactDetails(contactId, e.target.value);
+        }
     });
     
     document.getElementById('cancel-transfer-btn').addEventListener('click', () => closeModal(transferModal));
