@@ -101,14 +101,14 @@
         /* Desktop: garder les boutons visibles */
         @media (min-width: 768px) {
             .transaction-desktop-actions {
-                display: flex;
+                display: inline-block;
             }
             .transaction-actions {
                 display: none;
             }
         }
         
-        /* Mobile: activer le swipe */
+        /* Mobile: cacher les boutons edit/delete, activer le swipe */
         @media (max-width: 767px) {
             .transaction-desktop-actions {
                 display: none;
@@ -648,7 +648,7 @@
             const formattedDate = new Date(t.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
             card.innerHTML = `
-                <!-- Actions cachées pour le swipe (mobile) -->
+                <!-- Actions cachées pour le swipe (mobile uniquement) -->
                 <div class="transaction-actions">
                     <button data-id="${t.id}" class="swipe-action-btn swipe-edit" data-action="edit">
                         <i class="fas fa-pen"></i>
@@ -672,18 +672,12 @@
                         </div>
                     </div>
                     
-                    <!-- Boutons visibles sur desktop -->
-                    <div class="transaction-desktop-actions flex justify-end space-x-2 mt-2">
+                    <!-- Tous les boutons (desktop = tous visibles, mobile = rembourser/transférer visibles, edit/delete via swipe) -->
+                    <div class="flex justify-end space-x-2 mt-2">
                         ${!isFullyPaid ? `<button data-id="${t.id}" class="pay-btn bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-green-200">Rembourser</button>` : ''}
                         <button data-id="${t.id}" class="transfer-btn bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-purple-200"><i class="fas fa-exchange-alt"></i> Transférer</button>
-                        <button data-id="${t.id}" class="edit-transaction-btn text-gray-400 hover:text-blue-500"><i class="fas fa-pen"></i></button>
-                        <button data-id="${t.id}" class="delete-transaction-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
-                    </div>
-                    
-                    <!-- Boutons visibles sur mobile (sans edit/delete) -->
-                    <div class="md:hidden flex justify-end space-x-2 mt-2">
-                        ${!isFullyPaid ? `<button data-id="${t.id}" class="pay-btn bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Rembourser</button>` : ''}
-                        <button data-id="${t.id}" class="transfer-btn bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full"><i class="fas fa-exchange-alt"></i> Transférer</button>
+                        <button data-id="${t.id}" class="edit-transaction-btn transaction-desktop-actions text-gray-400 hover:text-blue-500"><i class="fas fa-pen"></i></button>
+                        <button data-id="${t.id}" class="delete-transaction-btn transaction-desktop-actions text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `;
