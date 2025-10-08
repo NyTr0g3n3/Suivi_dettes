@@ -38,7 +38,7 @@
         body.dark-mode .hover\:bg-gray-50:hover { background-color: #374151; }
         body.dark-mode .hover\:bg-gray-100:hover { background-color: #374151; }
         body.dark-mode .hover\:bg-gray-300:hover { background-color: #4b5563; }
-        body.dark-mode .hover\:bg-gray-400:hover { background-color: #6b7280; }
+        body.dark-mode .hover\:bg-gray-400:hover { background-color: #6b5563; }
         body.dark-mode input, body.dark-mode select { 
             background-color: #374151; 
             color: #f3f4f6;
@@ -47,6 +47,73 @@
         body.dark-mode .bg-blue-50 { background-color: #1e3a5f; }
         body.dark-mode .text-blue-700 { color: #93c5fd; }
         body.dark-mode .text-blue-900 { color: #dbeafe; }
+        
+        /* Swipe to delete */
+        .transaction-item {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .transaction-content {
+            position: relative;
+            background: white;
+            z-index: 2;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: pan-y;
+        }
+        
+        body.dark-mode .transaction-content {
+            background: #1f2937;
+        }
+        
+        .transaction-actions {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            padding-right: 1rem;
+            z-index: 1;
+        }
+        
+        .swipe-action-btn {
+            width: 60px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            border: none;
+            cursor: pointer;
+            transition: width 0.2s;
+        }
+        
+        .swipe-delete {
+            background-color: #ef4444;
+        }
+        
+        .swipe-edit {
+            background-color: #3b82f6;
+        }
+        
+        /* Desktop: garder les boutons visibles */
+        @media (min-width: 768px) {
+            .transaction-desktop-actions {
+                display: flex;
+            }
+            .transaction-actions {
+                display: none;
+            }
+        }
+        
+        /* Mobile: activer le swipe */
+        @media (max-width: 767px) {
+            .transaction-desktop-actions {
+                display: none;
+            }
+        }
         
         #empty-state {
             text-align: center;
@@ -577,30 +644,54 @@
             const isFullyPaid = t.isPaid || (t.amount - (t.paidAmount || 0) < 0.01);
             const due = t.amount - (t.paidAmount || 0);
             const card = document.createElement('div');
-            card.className = `bg-white p-3 rounded-lg shadow-sm border-l-4 ${isFullyPaid ? 'border-green-500' : 'border-red-500'}`;
+            card.className = `transaction-item bg-white rounded-lg shadow-sm border-l-4 ${isFullyPaid ? 'border-green-500' : 'border-red-500'}`;
             const formattedDate = new Date(t.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
             card.innerHTML = `
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="font-semibold">${t.description} <span class="text-sm font-normal text-gray-400">(${t.category})</span></p>
-                        <p class="text-sm text-gray-500">${formattedDate}</p>
-                    </div>
-                    <div class="text-right">
-                         <p class="font-bold text-lg ${isFullyPaid ? 'text-gray-500 line-through' : 'text-gray-800'}">${formatCurrency(t.amount)}</p>
-                         ${!isFullyPaid && (t.paidAmount || 0) > 0 ? `<p class="text-xs text-yellow-600">Partiel: ${formatCurrency(t.paidAmount)}</p>` : ''}
-                         ${!isFullyPaid ? `<p class="text-xs text-red-600">Dû: ${formatCurrency(due)}</p>` : `<p class="text-xs text-green-600">Remboursé</p>`}
-                    </div>
+                <!-- Actions cachées pour le swipe (mobile) -->
+                <div class="transaction-actions">
+                    <button data-id="${t.id}" class="swipe-action-btn swipe-edit" data-action="edit">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button data-id="${t.id}" class="swipe-action-btn swipe-delete" data-action="delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
-                <div class="flex justify-end space-x-2 mt-2">
-                    ${!isFullyPaid ? `<button data-id="${t.id}" class="pay-btn bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-green-200">Rembourser</button>` : ''}
-                    <button data-id="${t.id}" class="transfer-btn bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-purple-200"><i class="fas fa-exchange-alt"></i> Transférer</button>
-                    <button data-id="${t.id}" class="edit-transaction-btn text-gray-400 hover:text-blue-500"><i class="fas fa-pen"></i></button>
-                    <button data-id="${t.id}" class="delete-transaction-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                
+                <!-- Contenu de la transaction -->
+                <div class="transaction-content p-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold">${t.description} <span class="text-sm font-normal text-gray-400">(${t.category})</span></p>
+                            <p class="text-sm text-gray-500">${formattedDate}</p>
+                        </div>
+                        <div class="text-right">
+                             <p class="font-bold text-lg ${isFullyPaid ? 'text-gray-500 line-through' : 'text-gray-800'}">${formatCurrency(t.amount)}</p>
+                             ${!isFullyPaid && (t.paidAmount || 0) > 0 ? `<p class="text-xs text-yellow-600">Partiel: ${formatCurrency(t.paidAmount)}</p>` : ''}
+                             ${!isFullyPaid ? `<p class="text-xs text-red-600">Dû: ${formatCurrency(due)}</p>` : `<p class="text-xs text-green-600">Remboursé</p>`}
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons visibles sur desktop -->
+                    <div class="transaction-desktop-actions flex justify-end space-x-2 mt-2">
+                        ${!isFullyPaid ? `<button data-id="${t.id}" class="pay-btn bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-green-200">Rembourser</button>` : ''}
+                        <button data-id="${t.id}" class="transfer-btn bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-purple-200"><i class="fas fa-exchange-alt"></i> Transférer</button>
+                        <button data-id="${t.id}" class="edit-transaction-btn text-gray-400 hover:text-blue-500"><i class="fas fa-pen"></i></button>
+                        <button data-id="${t.id}" class="delete-transaction-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                    </div>
+                    
+                    <!-- Boutons visibles sur mobile (sans edit/delete) -->
+                    <div class="md:hidden flex justify-end space-x-2 mt-2">
+                        ${!isFullyPaid ? `<button data-id="${t.id}" class="pay-btn bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">Rembourser</button>` : ''}
+                        <button data-id="${t.id}" class="transfer-btn bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full"><i class="fas fa-exchange-alt"></i> Transférer</button>
+                    </div>
                 </div>
             `;
             historyContainer.appendChild(card);
         });
+        
+        // Initialiser le swipe pour toutes les transactions
+        initSwipeToDelete();
     }
     
     function renderAllContactsList() {
@@ -1009,6 +1100,91 @@
                 option.textContent = c.name;
                 select.appendChild(option);
             });
+    }
+    
+    function initSwipeToDelete() {
+        const transactionItems = document.querySelectorAll('.transaction-item');
+        
+        transactionItems.forEach(item => {
+            const content = item.querySelector('.transaction-content');
+            const actions = item.querySelector('.transaction-actions');
+            
+            if (!content || !actions) return;
+            
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            
+            content.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+                content.style.transition = 'none';
+            }, { passive: true });
+            
+            content.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+                
+                // Permettre seulement le swipe vers la gauche
+                if (diff > 0 && diff <= 120) {
+                    content.style.transform = `translateX(-${diff}px)`;
+                }
+            }, { passive: true });
+            
+            content.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                const diff = startX - currentX;
+                content.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                
+                // Si swipe > 60px, afficher les actions
+                if (diff > 60) {
+                    content.style.transform = 'translateX(-120px)';
+                } else {
+                    // Sinon, revenir à la position initiale
+                    content.style.transform = 'translateX(0)';
+                }
+            });
+            
+            // Clic sur les actions
+            actions.querySelectorAll('.swipe-action-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const action = btn.dataset.action;
+                    const transactionId = btn.dataset.id;
+                    
+                    // Fermer le swipe
+                    content.style.transform = 'translateX(0)';
+                    
+                    if (action === 'delete') {
+                        showDeleteConfirmation('transaction', transactionId, 'Supprimer cette transaction ?');
+                    } else if (action === 'edit') {
+                        const t = transactions.find(t => t.id === transactionId);
+                        if(t) {
+                            document.getElementById('transaction-form').reset();
+                            document.getElementById('modal-title').textContent = 'Modifier la transaction';
+                            document.getElementById('transaction-id').value = t.id;
+                            document.getElementById('contact-select').value = t.contactId;
+                            document.getElementById('amount').value = t.amount;
+                            document.getElementById('description').value = t.description;
+                            document.getElementById('date').value = t.date.split('T')[0];
+                            document.getElementById('category').value = t.category;
+                            openModal(transactionModal);
+                        }
+                    }
+                });
+            });
+            
+            // Fermer le swipe si on tape ailleurs
+            document.addEventListener('touchstart', (e) => {
+                if (!item.contains(e.target)) {
+                    content.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    content.style.transform = 'translateX(0)';
+                }
+            }, { passive: true });
+        });
     }
     
     // --- Event Listeners ---
