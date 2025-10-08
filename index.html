@@ -448,6 +448,11 @@
     function formatCurrency(value) {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
     }
+    
+    function formatCurrencyForPDF(value) {
+        // Format sans espace pour éviter les problèmes dans le PDF
+        return value.toFixed(2).replace('.', ',') + ' EUR';
+    }
 
     function renderDashboard() {
         const contactList = document.getElementById('contact-list');
@@ -786,16 +791,16 @@
         // En-tête
         doc.setFontSize(20);
         doc.setFont(undefined, 'bold');
-        doc.text('RELEVÉ DE DETTES', 105, 20, { align: 'center' });
+        doc.text('RELEVE DE DETTES', 105, 20, { align: 'center' });
         
         doc.setFontSize(12);
         doc.setFont(undefined, 'normal');
-        doc.text(`Date d'édition : ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, 105, 30, { align: 'center' });
+        doc.text(`Date d'edition : ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, 105, 30, { align: 'center' });
         
         // Informations du débiteur
         doc.setFontSize(14);
         doc.setFont(undefined, 'bold');
-        doc.text('Débiteur', 20, 45);
+        doc.text('Debiteur', 20, 45);
         
         doc.setFontSize(11);
         doc.setFont(undefined, 'normal');
@@ -821,29 +826,29 @@
         
         doc.setFontSize(10);
         doc.setFont(undefined, 'bold');
-        doc.text('RÉSUMÉ FINANCIER', 25, 68);
+        doc.text('RESUME FINANCIER', 25, 68);
         
         doc.setFont(undefined, 'normal');
-        doc.text(`Total prêté :`, 25, 76);
-        doc.text(`${formatCurrency(totalPrete)}`, 80, 76);
+        doc.text(`Total prete :`, 25, 76);
+        doc.text(`${formatCurrencyForPDF(totalPrete)}`, 80, 76);
         
-        doc.text(`Total remboursé :`, 25, 82);
+        doc.text(`Total rembourse :`, 25, 82);
         doc.setTextColor(0, 150, 0);
-        doc.text(`${formatCurrency(totalRembourse)}`, 80, 82);
+        doc.text(`${formatCurrencyForPDF(totalRembourse)}`, 80, 82);
         doc.setTextColor(0, 0, 0);
         
         doc.setFont(undefined, 'bold');
-        doc.text(`TOTAL DÛ :`, 120, 82);
+        doc.text(`TOTAL DU :`, 120, 82);
         doc.setTextColor(200, 0, 0);
         doc.setFontSize(12);
-        doc.text(`${formatCurrency(totalDu)}`, 160, 82);
+        doc.text(`${formatCurrencyForPDF(totalDu)}`, 160, 82);
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         
         // Tableau des transactions
         doc.setFont(undefined, 'bold');
         doc.setFontSize(12);
-        doc.text('DÉTAIL DES TRANSACTIONS', 20, 105);
+        doc.text('DETAIL DES TRANSACTIONS', 20, 105);
         
         let yPos = 115;
         
@@ -857,7 +862,7 @@
         doc.text('Description', 45, yPos);
         doc.text('Montant', 110, yPos);
         doc.text('Remb.', 140, yPos);
-        doc.text('Reste dû', 165, yPos);
+        doc.text('Reste du', 165, yPos);
         
         doc.setTextColor(0, 0, 0);
         doc.setFont(undefined, 'normal');
@@ -886,11 +891,11 @@
             const desc = t.description.length > 30 ? t.description.substring(0, 27) + '...' : t.description;
             doc.text(`${desc} (${t.category})`, 45, yPos);
             
-            doc.text(formatCurrency(t.amount), 110, yPos);
+            doc.text(formatCurrencyForPDF(t.amount), 110, yPos);
             
             if (t.paidAmount && t.paidAmount > 0) {
                 doc.setTextColor(0, 150, 0);
-                doc.text(formatCurrency(t.paidAmount), 140, yPos);
+                doc.text(formatCurrencyForPDF(t.paidAmount), 140, yPos);
                 doc.setTextColor(0, 0, 0);
             } else {
                 doc.text('-', 140, yPos);
@@ -899,13 +904,13 @@
             if (isFullyPaid) {
                 doc.setTextColor(0, 150, 0);
                 doc.setFont(undefined, 'bold');
-                doc.text('PAYÉ', 165, yPos);
+                doc.text('PAYE', 165, yPos);
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(0, 0, 0);
             } else {
                 doc.setTextColor(200, 0, 0);
                 doc.setFont(undefined, 'bold');
-                doc.text(formatCurrency(due), 165, yPos);
+                doc.text(formatCurrencyForPDF(due), 165, yPos);
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(0, 0, 0);
             }
@@ -925,13 +930,13 @@
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
             doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' });
-            doc.text('Document généré par Suivi de Dettes', 105, 295, { align: 'center' });
+            doc.text('Document genere par Suivi de Dettes', 105, 295, { align: 'center' });
         }
         
         // Téléchargement
         const fileName = `releve_${contact.name.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
         doc.save(fileName);
-        showToast('PDF généré avec succès');
+        showToast('PDF genere avec succes');
     }
     
     async function transferTransaction(transactionId, newContactId) {
