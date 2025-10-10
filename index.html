@@ -530,6 +530,7 @@
     onAuthStateChanged(auth, (user) => {
         contactsUnsubscribe();
         transactionsUnsubscribe();
+        savingsUnsubscribe();
 
         if (user) {
             currentUserId = user.uid;
@@ -543,6 +544,7 @@
             currentUserId = null;
             contacts = [];
             transactions = [];
+            savingsOperations = [];
             renderDashboard();
             
             loginView.classList.remove('hidden');
@@ -575,36 +577,52 @@
     signOutBtn.addEventListener('click', signOutUser);
     document.getElementById('toggle-dark-mode-btn').addEventListener('click', toggleDarkMode);
     
-    // --- Chargement des données ---
-    function loadData() {
-        if (!currentUserId) return;
-        
-        const contactsRef = collection(db, 'users', currentUserId, 'contacts');
-        contactsUnsubscribe = onSnapshot(contactsRef, (snapshot) => {
-            contacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderAllContactsList();
-            updateContactDropdown();
-            renderDashboard();
-        }, (error) => {
-            console.error("Erreur lors du chargement des contacts:", error);
-            showToast('Erreur de chargement des contacts', 'error');
-        });
+// --- Chargement des données ---
+function loadData() {
+    if (!currentUserId) return;
+    
+    const contactsRef = collection(db, 'users', currentUserId, 'contacts');
+    contactsUnsubscribe = onSnapshot(contactsRef, (snapshot) => {
+        contacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderAllContactsList();
+        updateContactDropdown();
+        renderDashboard();
+    }, (error) => {
+        console.error("Erreur lors du chargement des contacts:", error);
+        showToast('Erreur de chargement des contacts', 'error');
+    });
 
-        const transactionsRef = collection(db, 'users', currentUserId, 'transactions');
-        transactionsUnsubscribe = onSnapshot(transactionsRef, (snapshot) => {
-            transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderDashboard();
-            const currentContactId = contactDetailsView.dataset.currentContactId;
-            if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
-                const searchQuery = document.getElementById('transaction-search').value;
-                if (currentTab === 'debts') {
-                    renderContactDetails(currentContactId, searchQuery);
-                }
+    const transactionsRef = collection(db, 'users', currentUserId, 'transactions');
+    transactionsUnsubscribe = onSnapshot(transactionsRef, (snapshot) => {
+        transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderDashboard();
+        const currentContactId = contactDetailsView.dataset.currentContactId;
+        if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
+            const searchQuery = document.getElementById('transaction-search').value;
+            if (currentTab === 'debts') {
+                renderContactDetails(currentContactId, searchQuery);
             }
-        }, (error) => {
-            console.error("Erreur lors du chargement des transactions:", error);
-            showToast('Erreur de chargement des transactions', 'error');
-        });
+        }
+    }, (error) => {
+        console.error("Erreur lors du chargement des transactions:", error);
+        showToast('Erreur de chargement des transactions', 'error');
+    });
+    
+    // AJOUTER CETTE SECTION :
+    const savingsRef = collection(db, 'users', currentUserId, 'savings');
+    savingsUnsubscribe = onSnapshot(savingsRef, (snapshot) => {
+        savingsOperations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const currentContactId = contactDetailsView.dataset.currentContactId;
+        if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
+            if (currentTab === 'savings') {
+                renderSavingsView(currentContactId);
+            }
+            updateSavingsDisplay(currentContactId);
+        }
+    }, (error) => {
+        console.error("Erreur lors du chargement de l'épargne:", error);
+        showToast('Erreur de chargement de l\'épargne', 'error');
+    });
         
         const savingsRef = collection(db, 'users', currentUserId, 'savings');
         savingsUnsubscribe = onSnapshot(savingsRef, (snapshot) => {
@@ -778,6 +796,7 @@
         
         // Initialiser le swipe pour toutes les transactions
         initSwipeToDelete();
+        updateSavingsDisplay(contactId);
     }
     
     function renderAllContactsList() {
@@ -820,7 +839,9 @@
         addTransactionBtn.classList.add('hidden');
         contactDetailsView.dataset.currentContactId = contactId;
         document.getElementById('transaction-search').value = '';
+        currentTab = 'debts';
         renderContactDetails(contactId);
+        updateSavingsDisplay(contactId);
     }
     
     function openModal(modal) {
@@ -1593,6 +1614,8 @@ function switchTab(tab) {
             renderContactDetails(contactId, e.target.value);
         }
     });
+
+    
     
     document.getElementById('cancel-transfer-btn').addEventListener('click', () => closeModal(transferModal));
     
@@ -1606,3 +1629,4 @@ function switchTab(tab) {
 </script>
 </body>
 </html>
+
