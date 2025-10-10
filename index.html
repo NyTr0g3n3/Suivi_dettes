@@ -227,32 +227,76 @@
                     <div class="flex-grow">
                         <h2 id="details-contact-name" class="text-2xl font-bold"></h2>
                         <p class="text-gray-500">Total dû : <span id="details-total-due" class="font-semibold"></span></p>
+                        <p id="savings-balance-display" class="text-blue-600 hidden">Épargne : <span id="details-savings-balance" class="font-semibold"></span></p>
                     </div>
                 </header>
                 
-                <!-- Barre de recherche -->
-                <div class="mb-4">
-                    <div class="relative">
-                        <input 
-                            type="text" 
-                            id="transaction-search" 
-                            placeholder="Rechercher une transaction..." 
-                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                        >
-                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <!-- Onglets Dettes / Épargne -->
+                <div id="tabs-container" class="flex border-b border-gray-300 mb-4 hidden">
+                    <button id="tab-debts" class="flex-1 py-2 text-center font-semibold border-b-2 border-blue-600 text-blue-600">
+                        Dettes
+                    </button>
+                    <button id="tab-savings" class="flex-1 py-2 text-center font-semibold text-gray-500 hover:text-blue-600">
+                        Épargne
+                    </button>
+                </div>
+                
+                <!-- Vue Dettes -->
+                <div id="debts-view">
+                    <!-- Barre de recherche -->
+                    <div class="mb-4">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="transaction-search" 
+                                placeholder="Rechercher une transaction..." 
+                                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            >
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 mb-4">
+                        <button id="add-global-repayment-btn" class="flex-1 bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition"><i class="fas fa-hand-holding-usd mr-2"></i>Encaisser</button>
+                        <button id="export-pdf-btn" class="flex-1 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition"><i class="fas fa-file-pdf mr-2"></i>PDF</button>
+                        <button id="export-csv-btn" class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-file-csv mr-2"></i>CSV</button>
+                    </div>
+                    <div id="transaction-history" class="space-y-3"></div>
+                    <div id="no-results-message" class="hidden text-center text-gray-500 mt-8">
+                        <i class="fas fa-search text-4xl mb-2"></i>
+                        <p>Aucune transaction trouvée</p>
                     </div>
                 </div>
                 
-                <div class="flex space-x-2 mb-4">
-                    <button id="add-global-repayment-btn" class="flex-1 bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition"><i class="fas fa-hand-holding-usd mr-2"></i>Encaisser</button>
-                    <button id="export-pdf-btn" class="flex-1 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition"><i class="fas fa-file-pdf mr-2"></i>PDF</button>
-                    <button id="export-csv-btn" class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-file-csv mr-2"></i>CSV</button>
+                <!-- Vue Épargne -->
+                <div id="savings-view" class="hidden">
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+                        <div class="flex items-start">
+                            <i class="fas fa-piggy-bank text-blue-600 text-2xl mr-3 mt-1"></i>
+                            <div class="flex-grow">
+                                <p class="font-semibold text-blue-900">Compte d'épargne</p>
+                                <p class="text-sm text-blue-700">Argent que vous gardez pour cette personne</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 mb-4">
+                        <button id="add-savings-deposit-btn" class="flex-1 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition"><i class="fas fa-plus-circle mr-2"></i>Dépôt</button>
+                        <button id="add-savings-withdrawal-btn" class="flex-1 bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-orange-700 transition"><i class="fas fa-minus-circle mr-2"></i>Retrait</button>
+                        <button id="disable-savings-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-times"></i></button>
+                    </div>
+                    
+                    <div id="savings-history" class="space-y-3"></div>
+                    <div id="no-savings-message" class="hidden text-center text-gray-500 mt-8">
+                        <i class="fas fa-piggy-bank text-4xl mb-2"></i>
+                        <p>Aucune opération d'épargne</p>
+                    </div>
                 </div>
-                <div id="transaction-history" class="space-y-3"></div>
-                <div id="no-results-message" class="hidden text-center text-gray-500 mt-8">
-                    <i class="fas fa-search text-4xl mb-2"></i>
-                    <p>Aucune transaction trouvée</p>
-                </div>
+                
+                <!-- Bouton activer épargne (visible seulement si pas activée) -->
+                <button id="enable-savings-btn" class="hidden w-full bg-blue-100 text-blue-700 font-semibold py-3 px-4 rounded-lg hover:bg-blue-200 transition border-2 border-blue-300 border-dashed">
+                    <i class="fas fa-piggy-bank mr-2"></i>Activer le compte d'épargne
+                </button>
             </section>
     
             <!-- Bouton d'action flottant -->
@@ -368,6 +412,33 @@
             </form>
         </div>
     </div>
+    <div id="savings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 id="savings-modal-title" class="text-xl font-bold mb-4">Opération d'épargne</h2>
+            <form id="savings-form">
+                <input type="hidden" id="savings-operation-type">
+                <input type="hidden" id="savings-operation-id">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="savings-amount" class="block text-sm font-medium text-gray-700">Montant (€)</label>
+                        <input type="number" id="savings-amount" step="0.01" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="150,00">
+                    </div>
+                    <div>
+                        <label for="savings-date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="savings-date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="savings-description" class="block text-sm font-medium text-gray-700">Description</label>
+                    <input type="text" id="savings-description" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Salaire janvier, Retrait...">
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-savings-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Sauvegarder</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 <script type="module">
     // Importations Firebase
@@ -395,8 +466,11 @@
     let currentUserId = null;
     let contacts = [];
     let transactions = [];
+    let savingsOperations = [];
+    let currentTab = 'debts'; // 'debts' ou 'savings'
     let contactsUnsubscribe = () => {};
     let transactionsUnsubscribe = () => {};
+    let savingsUnsubscribe = () => {};
 
     // --- Sélecteurs d'éléments DOM ---
     const loginView = document.getElementById('login-view');
@@ -413,6 +487,7 @@
     const repaymentModal = document.getElementById('repayment-modal');
     const deleteConfirmModal = document.getElementById('delete-confirm-modal');
     const transferModal = document.getElementById('transfer-modal');
+    const savingsModal = document.getElementById('savings-modal');
 
     // --- Système de notifications ---
     function showToast(message, type = 'success') {
@@ -522,11 +597,28 @@
             const currentContactId = contactDetailsView.dataset.currentContactId;
             if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
                 const searchQuery = document.getElementById('transaction-search').value;
-                renderContactDetails(currentContactId, searchQuery);
+                if (currentTab === 'debts') {
+                    renderContactDetails(currentContactId, searchQuery);
+                }
             }
         }, (error) => {
             console.error("Erreur lors du chargement des transactions:", error);
             showToast('Erreur de chargement des transactions', 'error');
+        });
+        
+        const savingsRef = collection(db, 'users', currentUserId, 'savings');
+        savingsUnsubscribe = onSnapshot(savingsRef, (snapshot) => {
+            savingsOperations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const currentContactId = contactDetailsView.dataset.currentContactId;
+            if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
+                if (currentTab === 'savings') {
+                    renderSavingsView(currentContactId);
+                }
+                updateSavingsDisplay(currentContactId);
+            }
+        }, (error) => {
+            console.error("Erreur lors du chargement de l'épargne:", error);
+            showToast('Erreur de chargement de l\'épargne', 'error');
         });
     }
 
@@ -1180,6 +1272,162 @@
             }, { passive: true });
         });
     }
+
+    // --- Gestion de l'épargne ---
+async function enableSavings(contactId) {
+    if (!currentUserId) return;
+    try {
+        await updateDoc(doc(db, 'users', currentUserId, 'contacts', contactId), {
+            savingsEnabled: true
+        });
+        showToast('Compte d\'épargne activé');
+        showContactDetails(contactId);
+    } catch (error) {
+        console.error("Erreur activation épargne:", error);
+        showToast('Erreur lors de l\'activation', 'error');
+    }
+}
+
+async function disableSavings(contactId) {
+    if (!currentUserId) return;
+    const ops = savingsOperations.filter(op => op.contactId === contactId);
+    if (ops.length > 0) {
+        if (!confirm('Des opérations d\'épargne existent. Voulez-vous vraiment désactiver ?')) {
+            return;
+        }
+    }
+    try {
+        await updateDoc(doc(db, 'users', currentUserId, 'contacts', contactId), {
+            savingsEnabled: false
+        });
+        currentTab = 'debts';
+        showContactDetails(contactId);
+        showToast('Compte d\'épargne désactivé');
+    } catch (error) {
+        console.error("Erreur désactivation épargne:", error);
+        showToast('Erreur lors de la désactivation', 'error');
+    }
+}
+
+async function saveSavingsOperation(data) {
+    if (!currentUserId) return;
+    const savingsRef = collection(db, 'users', currentUserId, 'savings');
+    try {
+        await addDoc(savingsRef, {
+            contactId: data.contactId,
+            type: data.type,
+            amount: data.amount,
+            description: data.description,
+            date: data.date
+        });
+        showToast('Opération ajoutée');
+    } catch (error) {
+        console.error("Erreur sauvegarde opération:", error);
+        showToast('Erreur lors de la sauvegarde', 'error');
+    }
+}
+
+async function deleteSavingsOperation(operationId) {
+    if (!currentUserId) return;
+    try {
+        await deleteDoc(doc(db, 'users', currentUserId, 'savings', operationId));
+        showToast('Opération supprimée');
+    } catch (error) {
+        console.error("Erreur suppression opération:", error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
+
+function calculateSavingsBalance(contactId) {
+    return savingsOperations
+        .filter(op => op.contactId === contactId)
+        .reduce((acc, op) => {
+            return op.type === 'deposit' ? acc + op.amount : acc - op.amount;
+        }, 0);
+}
+
+function updateSavingsDisplay(contactId) {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact || !contact.savingsEnabled) {
+        document.getElementById('savings-balance-display').classList.add('hidden');
+        document.getElementById('tabs-container').classList.add('hidden');
+        document.getElementById('enable-savings-btn').classList.remove('hidden');
+        return;
+    }
+    
+    const balance = calculateSavingsBalance(contactId);
+    document.getElementById('details-savings-balance').textContent = formatCurrency(balance);
+    document.getElementById('savings-balance-display').classList.remove('hidden');
+    document.getElementById('tabs-container').classList.remove('hidden');
+    document.getElementById('enable-savings-btn').classList.add('hidden');
+}
+
+function renderSavingsView(contactId) {
+    const operations = savingsOperations
+        .filter(op => op.contactId === contactId)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    const historyContainer = document.getElementById('savings-history');
+    const noMessage = document.getElementById('no-savings-message');
+    historyContainer.innerHTML = '';
+    
+    if (operations.length === 0) {
+        historyContainer.classList.add('hidden');
+        noMessage.classList.remove('hidden');
+        return;
+    }
+    
+    historyContainer.classList.remove('hidden');
+    noMessage.classList.add('hidden');
+    
+    operations.forEach(op => {
+        const isDeposit = op.type === 'deposit';
+        const card = document.createElement('div');
+        card.className = `bg-white p-3 rounded-lg shadow-sm border-l-4 ${isDeposit ? 'border-blue-500' : 'border-orange-500'}`;
+        const formattedDate = new Date(op.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="font-semibold">${op.description}</p>
+                    <p class="text-sm text-gray-500">${formattedDate}</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-bold text-lg ${isDeposit ? 'text-blue-600' : 'text-orange-600'}">
+                        ${isDeposit ? '+' : '-'} ${formatCurrency(op.amount)}
+                    </p>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-2">
+                <button data-id="${op.id}" class="delete-savings-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        historyContainer.appendChild(card);
+    });
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    const contactId = contactDetailsView.dataset.currentContactId;
+    
+    if (tab === 'debts') {
+        document.getElementById('tab-debts').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-debts').classList.remove('text-gray-500');
+        document.getElementById('tab-savings').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-savings').classList.add('text-gray-500');
+        document.getElementById('debts-view').classList.remove('hidden');
+        document.getElementById('savings-view').classList.add('hidden');
+        renderContactDetails(contactId);
+    } else {
+        document.getElementById('tab-savings').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-savings').classList.remove('text-gray-500');
+        document.getElementById('tab-debts').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-debts').classList.add('text-gray-500');
+        document.getElementById('debts-view').classList.add('hidden');
+        document.getElementById('savings-view').classList.remove('hidden');
+        renderSavingsView(contactId);
+    }
+}
     
     // --- Event Listeners ---
     document.getElementById('back-to-dashboard-btn').addEventListener('click', showDashboard);
