@@ -1610,8 +1610,16 @@ function switchTab(tab) {
         transferTransaction(transactionId, newContactId);
         closeModal(transferModal);
     });
+
+    document.getElementById('enable-savings-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    if (contactId) {
+        enableSavings(contactId);
+    }
+});
 </script>
 </body>
 </html>
+
 
 
