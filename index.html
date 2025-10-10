@@ -273,29 +273,58 @@
                 </div>
                 
                 <!-- Vue Épargne -->
-                <div id="savings-view" class="hidden">
-                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
-                        <div class="flex items-start">
-                            <i class="fas fa-piggy-bank text-blue-600 text-2xl mr-3 mt-1"></i>
-                            <div class="flex-grow">
-                                <p class="font-semibold text-blue-900">Compte d'épargne</p>
-                                <p class="text-sm text-blue-700">Argent que vous gardez pour cette personne</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex space-x-2 mb-4">
-                        <button id="add-savings-deposit-btn" class="flex-1 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition"><i class="fas fa-plus-circle mr-2"></i>Dépôt</button>
-                        <button id="add-savings-withdrawal-btn" class="flex-1 bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-orange-700 transition"><i class="fas fa-minus-circle mr-2"></i>Retrait</button>
-                        <button id="disable-savings-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-times"></i></button>
-                    </div>
-                    
-                    <div id="savings-history" class="space-y-3"></div>
-                    <div id="no-savings-message" class="hidden text-center text-gray-500 mt-8">
-                        <i class="fas fa-piggy-bank text-4xl mb-2"></i>
-                        <p>Aucune opération d'épargne</p>
-                    </div>
-                </div>
+<div id="savings-view" class="hidden">
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+        <div class="flex items-start">
+            <i class="fas fa-piggy-bank text-blue-600 text-2xl mr-3 mt-1"></i>
+            <div class="flex-grow">
+                <p class="font-semibold text-blue-900">Compte d'épargne</p>
+                <p class="text-sm text-blue-700">Argent que vous gardez pour cette personne</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vue principale : Liste des catégories -->
+    <div id="savings-categories-view">
+        <div class="flex space-x-2 mb-4">
+            <button id="manage-categories-btn" class="flex-1 bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-700 transition"><i class="fas fa-tags mr-2"></i>Gérer catégories</button>
+            <button id="add-savings-operation-btn" class="flex-1 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition"><i class="fas fa-plus-circle mr-2"></i>Ajouter opération</button>
+            <button id="disable-savings-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div id="categories-list" class="space-y-2 mb-4"></div>
+        
+        <div id="no-categories-message" class="text-center text-gray-500 mt-8">
+            <i class="fas fa-tags text-4xl mb-2"></i>
+            <p>Aucune catégorie. Cliquez sur "Gérer catégories" pour commencer.</p>
+        </div>
+        
+        <div class="bg-gray-100 p-3 rounded-lg mt-4">
+            <p class="text-center font-bold text-gray-700">Total épargne : <span id="total-savings-amount">0,00 €</span></p>
+        </div>
+    </div>
+    
+    <!-- Vue détail : Opérations d'une catégorie -->
+    <div id="savings-category-detail-view" class="hidden">
+        <div class="mb-4">
+            <button id="back-to-categories-btn" class="text-blue-600 hover:text-blue-800 font-semibold">
+                <i class="fas fa-arrow-left mr-2"></i>Retour aux catégories
+            </button>
+        </div>
+        
+        <div class="bg-white border-2 border-blue-200 p-4 rounded-lg mb-4">
+            <h3 id="category-detail-name" class="text-xl font-bold text-gray-800 mb-1"></h3>
+            <p class="text-2xl font-bold text-blue-600" id="category-detail-balance">0,00 €</p>
+        </div>
+        
+        <div id="category-operations-list" class="space-y-3"></div>
+        
+        <div id="no-operations-message" class="hidden text-center text-gray-500 mt-8">
+            <i class="fas fa-inbox text-4xl mb-2"></i>
+            <p>Aucune opération dans cette catégorie</p>
+        </div>
+    </div>
+</div>
                 
                 <!-- Bouton activer épargne (visible seulement si pas activée) -->
                 <button id="enable-savings-btn" class="hidden w-full bg-blue-100 text-blue-700 font-semibold py-3 px-4 rounded-lg hover:bg-blue-200 transition border-2 border-blue-300 border-dashed">
@@ -416,17 +445,70 @@
             </form>
         </div>
     </div>
+<!-- Modale Ajouter/Modifier opération d'épargne -->
     <div id="savings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-            <h2 id="savings-modal-title" class="text-xl font-bold mb-4">Opération d'épargne</h2>
+            <h2 id="savings-modal-title" class="text-xl font-bold mb-4">Ajouter une opération</h2>
             <form id="savings-form">
-                <input type="hidden" id="savings-operation-type">
                 <input type="hidden" id="savings-operation-id">
+                
+                <div class="mb-4">
+                    <label for="savings-operation-type" class="block text-sm font-medium text-gray-700">Type</label>
+                    <select id="savings-operation-type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="deposit">Dépôt</option>
+                        <option value="withdrawal">Retrait</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="savings-category" class="block text-sm font-medium text-gray-700">Catégorie</label>
+                    <select id="savings-category" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner une catégorie</option>
+                    </select>
+                </div>
+                
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label for="savings-amount" class="block text-sm font-medium text-gray-700">Montant (€)</label>
                         <input type="number" id="savings-amount" step="0.01" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="150,00">
                     </div>
+                    <div>
+                        <label for="savings-date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="savings-date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="savings-description" class="block text-sm font-medium text-gray-700">Description</label>
+                    <input type="text" id="savings-description" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Salaire janvier, Retrait...">
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-savings-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Sauvegarder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modale Gérer Catégories -->
+    <div id="categories-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4">Gérer les catégories d'épargne</h2>
+            
+            <div id="categories-management-list" class="space-y-2 mb-4 max-h-64 overflow-y-auto"></div>
+            
+            <div class="mb-4">
+                <input type="text" id="new-category-name" placeholder="Nom de la nouvelle catégorie" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" id="close-categories-modal-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Fermer</button>
+                <button type="button" id="add-category-btn" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">Ajouter catégorie</button>
+            </div>
+        </div>
+    </div>
+                
                     <div>
                         <label for="savings-date" class="block text-sm font-medium text-gray-700">Date</label>
                         <input type="date" id="savings-date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
@@ -467,14 +549,18 @@
     const auth = getAuth(app);
 
     // --- Variables globales ---
-    let currentUserId = null;
-    let contacts = [];
-    let transactions = [];
-    let savingsOperations = [];
-    let currentTab = 'debts'; // 'debts' ou 'savings'
-    let contactsUnsubscribe = () => {};
-    let transactionsUnsubscribe = () => {};
-    let savingsUnsubscribe = () => {};
+let currentUserId = null;
+let contacts = [];
+let transactions = [];
+let savingsOperations = [];
+let savingsCategories = [];
+let currentSavingsView = 'categories'; // 'categories' ou 'detail'
+let currentCategoryId = null;
+let currentTab = 'debts'; // 'debts' ou 'savings'
+let contactsUnsubscribe = () => {};
+let transactionsUnsubscribe = () => {};
+let savingsUnsubscribe = () => {};
+let categoriesUnsubscribe = () => {};
 
     // --- Sélecteurs d'éléments DOM ---
     const loginView = document.getElementById('login-view');
@@ -492,6 +578,7 @@
     const deleteConfirmModal = document.getElementById('delete-confirm-modal');
     const transferModal = document.getElementById('transfer-modal');
     const savingsModal = document.getElementById('savings-modal');
+    const categoriesModal = document.getElementById('categories-modal');
 
     // --- Système de notifications ---
     function showToast(message, type = 'success') {
@@ -535,6 +622,7 @@
         contactsUnsubscribe();
         transactionsUnsubscribe();
         savingsUnsubscribe();
+        categoriesUnsubscribe();
 
         if (user) {
             currentUserId = user.uid;
@@ -549,6 +637,7 @@
             contacts = [];
             transactions = [];
             savingsOperations = [];
+            savingsCategories = [];
             renderDashboard();
             
             loginView.classList.remove('hidden');
@@ -626,6 +715,23 @@ function loadData() {
             console.error("Erreur lors du chargement de l'épargne:", error);
             showToast('Erreur de chargement de l\'épargne', 'error');
         });
+
+    const categoriesRef = collection(db, 'users', currentUserId, 'savingsCategories');
+    categoriesUnsubscribe = onSnapshot(categoriesRef, (snapshot) => {
+        savingsCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const currentContactId = contactDetailsView.dataset.currentContactId;
+        if (!contactDetailsView.classList.contains('hidden') && currentContactId && currentTab === 'savings') {
+            if (currentSavingsView === 'categories') {
+                renderSavingsCategoriesList(currentContactId);
+                updateSavingsCategoryDropdown(currentContactId);
+            } else if (currentSavingsView === 'detail') {
+                renderCategoryDetail(currentContactId, currentCategoryId);
+            }
+        }
+    }, (error) => {
+        console.error("Erreur lors du chargement des catégories:", error);
+        showToast('Erreur de chargement des catégories', 'error');
+    });
     }
 
     // --- Fonctions Utilitaires et Rendu ---
@@ -1300,11 +1406,14 @@ async function enableSavings(contactId) {
 async function disableSavings(contactId) {
     if (!currentUserId) return;
     const ops = savingsOperations.filter(op => op.contactId === contactId);
-    if (ops.length > 0) {
-        if (!confirm('Des opérations d\'épargne existent. Voulez-vous vraiment désactiver ?')) {
+    const cats = savingsCategories.filter(cat => cat.contactId === contactId);
+    
+    if (ops.length > 0 || cats.length > 0) {
+        if (!confirm('Des catégories et opérations existent. Voulez-vous vraiment désactiver l\'épargne ?')) {
             return;
         }
     }
+    
     try {
         await updateDoc(doc(db, 'users', currentUserId, 'contacts', contactId), {
             savingsEnabled: false
@@ -1318,12 +1427,52 @@ async function disableSavings(contactId) {
     }
 }
 
+async function saveSavingsCategory(contactId, categoryName) {
+    if (!currentUserId || !categoryName.trim()) return;
+    const categoriesRef = collection(db, 'users', currentUserId, 'savingsCategories');
+    try {
+        await addDoc(categoriesRef, {
+            contactId: contactId,
+            name: categoryName.trim()
+        });
+        showToast('Catégorie ajoutée');
+    } catch (error) {
+        console.error("Erreur création catégorie:", error);
+        showToast('Erreur lors de la création', 'error');
+    }
+}
+
+async function deleteSavingsCategory(categoryId) {
+    if (!currentUserId) return;
+    
+    // Vérifier s'il y a des opérations dans cette catégorie
+    const ops = savingsOperations.filter(op => op.categoryId === categoryId);
+    if (ops.length > 0) {
+        if (!confirm(`Cette catégorie contient ${ops.length} opération(s). Voulez-vous vraiment la supprimer ? Les opérations seront également supprimées.`)) {
+            return;
+        }
+        // Supprimer toutes les opérations de cette catégorie
+        for (const op of ops) {
+            await deleteDoc(doc(db, 'users', currentUserId, 'savings', op.id));
+        }
+    }
+    
+    try {
+        await deleteDoc(doc(db, 'users', currentUserId, 'savingsCategories', categoryId));
+        showToast('Catégorie supprimée');
+    } catch (error) {
+        console.error("Erreur suppression catégorie:", error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
+
 async function saveSavingsOperation(data) {
     if (!currentUserId) return;
     const savingsRef = collection(db, 'users', currentUserId, 'savings');
     try {
         await addDoc(savingsRef, {
             contactId: data.contactId,
+            categoryId: data.categoryId,
             type: data.type,
             amount: data.amount,
             description: data.description,
@@ -1347,7 +1496,15 @@ async function deleteSavingsOperation(operationId) {
     }
 }
 
-function calculateSavingsBalance(contactId) {
+function calculateCategoryBalance(categoryId) {
+    return savingsOperations
+        .filter(op => op.categoryId === categoryId)
+        .reduce((acc, op) => {
+            return op.type === 'deposit' ? acc + op.amount : acc - op.amount;
+        }, 0);
+}
+
+function calculateTotalSavingsBalance(contactId) {
     return savingsOperations
         .filter(op => op.contactId === contactId)
         .reduce((acc, op) => {
@@ -1362,7 +1519,6 @@ function updateSavingsDisplay(contactId) {
     const savingsBalanceDisplay = document.getElementById('savings-balance-display');
     
     if (!contact || !contact.savingsEnabled) {
-        // Épargne NON activée
         savingsBalanceDisplay.classList.add('hidden');
         tabsContainer.classList.add('hidden');
         enableBtn.classList.remove('hidden');
@@ -1371,36 +1527,106 @@ function updateSavingsDisplay(contactId) {
         return;
     }
     
-    // Épargne activée
-    const balance = calculateSavingsBalance(contactId);
+    const balance = calculateTotalSavingsBalance(contactId);
     document.getElementById('details-savings-balance').textContent = formatCurrency(balance);
     savingsBalanceDisplay.classList.remove('hidden');
     tabsContainer.classList.remove('hidden');
     enableBtn.classList.add('hidden');
 }
 
-function renderSavingsView(contactId) {
+function renderSavingsCategoriesList(contactId) {
+    const categories = savingsCategories.filter(cat => cat.contactId === contactId);
+    const listContainer = document.getElementById('categories-list');
+    const noMessage = document.getElementById('no-categories-message');
+    const totalAmount = document.getElementById('total-savings-amount');
+    
+    listContainer.innerHTML = '';
+    
+    if (categories.length === 0) {
+        noMessage.classList.remove('hidden');
+        listContainer.classList.add('hidden');
+        totalAmount.textContent = '0,00 €';
+        return;
+    }
+    
+    noMessage.classList.add('hidden');
+    listContainer.classList.remove('hidden');
+    
+    let total = 0;
+    
+    categories.forEach(cat => {
+        const balance = calculateCategoryBalance(cat.id);
+        total += balance;
+        
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded-lg shadow border-l-4 border-blue-500 hover:shadow-md transition cursor-pointer';
+        card.dataset.categoryId = cat.id;
+        
+        card.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="font-semibold text-gray-800">${cat.name}</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <p class="font-bold text-lg ${balance >= 0 ? 'text-blue-600' : 'text-red-600'}">
+                        ${formatCurrency(balance)}
+                    </p>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </div>
+            </div>
+        `;
+        
+        card.addEventListener('click', () => {
+            showCategoryDetail(contactId, cat.id);
+        });
+        
+        listContainer.appendChild(card);
+    });
+    
+    totalAmount.textContent = formatCurrency(total);
+}
+
+function showCategoryDetail(contactId, categoryId) {
+    currentSavingsView = 'detail';
+    currentCategoryId = categoryId;
+    
+    document.getElementById('savings-categories-view').classList.add('hidden');
+    document.getElementById('savings-category-detail-view').classList.remove('hidden');
+    
+    renderCategoryDetail(contactId, categoryId);
+}
+
+function renderCategoryDetail(contactId, categoryId) {
+    const category = savingsCategories.find(cat => cat.id === categoryId);
+    if (!category) return;
+    
     const operations = savingsOperations
-        .filter(op => op.contactId === contactId)
+        .filter(op => op.categoryId === categoryId)
         .sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    const historyContainer = document.getElementById('savings-history');
-    const noMessage = document.getElementById('no-savings-message');
-    historyContainer.innerHTML = '';
+    const balance = calculateCategoryBalance(categoryId);
+    
+    document.getElementById('category-detail-name').textContent = category.name;
+    document.getElementById('category-detail-balance').textContent = formatCurrency(balance);
+    
+    const listContainer = document.getElementById('category-operations-list');
+    const noMessage = document.getElementById('no-operations-message');
+    
+    listContainer.innerHTML = '';
     
     if (operations.length === 0) {
-        historyContainer.classList.add('hidden');
+        listContainer.classList.add('hidden');
         noMessage.classList.remove('hidden');
         return;
     }
     
-    historyContainer.classList.remove('hidden');
+    listContainer.classList.remove('hidden');
     noMessage.classList.add('hidden');
     
     operations.forEach(op => {
         const isDeposit = op.type === 'deposit';
         const card = document.createElement('div');
-        card.className = `bg-white p-3 rounded-lg shadow-sm border-l-4 ${isDeposit ? 'border-blue-500' : 'border-orange-500'}`;
+        card.className = `bg-white p-3 rounded-lg shadow-sm border-l-4 ${isDeposit ? 'border-green-500' : 'border-orange-500'}`;
         const formattedDate = new Date(op.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         
         card.innerHTML = `
@@ -1410,16 +1636,61 @@ function renderSavingsView(contactId) {
                     <p class="text-sm text-gray-500">${formattedDate}</p>
                 </div>
                 <div class="text-right">
-                    <p class="font-bold text-lg ${isDeposit ? 'text-blue-600' : 'text-orange-600'}">
+                    <p class="font-bold text-lg ${isDeposit ? 'text-green-600' : 'text-orange-600'}">
                         ${isDeposit ? '+' : '-'} ${formatCurrency(op.amount)}
                     </p>
                 </div>
             </div>
             <div class="flex justify-end space-x-2 mt-2">
-                <button data-id="${op.id}" class="delete-savings-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                <button data-id="${op.id}" class="delete-operation-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
             </div>
         `;
-        historyContainer.appendChild(card);
+        listContainer.appendChild(card);
+    });
+}
+
+function renderCategoriesManagement(contactId) {
+    const categories = savingsCategories.filter(cat => cat.contactId === contactId);
+    const listContainer = document.getElementById('categories-management-list');
+    
+    listContainer.innerHTML = '';
+    
+    if (categories.length === 0) {
+        listContainer.innerHTML = '<p class="text-center text-gray-500">Aucune catégorie pour le moment</p>';
+        return;
+    }
+    
+    categories.forEach(cat => {
+        const opsCount = savingsOperations.filter(op => op.categoryId === cat.id).length;
+        
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center p-3 bg-gray-50 rounded border';
+        
+        item.innerHTML = `
+            <div>
+                <p class="font-semibold">${cat.name}</p>
+                <p class="text-xs text-gray-500">${opsCount} opération(s)</p>
+            </div>
+            <button data-id="${cat.id}" class="delete-category-btn text-red-500 hover:text-red-700">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        listContainer.appendChild(item);
+    });
+}
+
+function updateSavingsCategoryDropdown(contactId) {
+    const categories = savingsCategories.filter(cat => cat.contactId === contactId);
+    const select = document.getElementById('savings-category');
+    
+    select.innerHTML = '<option value="">Sélectionner une catégorie</option>';
+    
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name;
+        select.appendChild(option);
     });
 }
 
@@ -1442,7 +1713,14 @@ function switchTab(tab) {
         document.getElementById('tab-debts').classList.add('text-gray-500');
         document.getElementById('debts-view').classList.add('hidden');
         document.getElementById('savings-view').classList.remove('hidden');
-        renderSavingsView(contactId);
+        
+        // Toujours revenir à la vue catégories quand on switch vers l'onglet épargne
+        currentSavingsView = 'categories';
+        document.getElementById('savings-categories-view').classList.remove('hidden');
+        document.getElementById('savings-category-detail-view').classList.add('hidden');
+        
+        renderSavingsCategoriesList(contactId);
+        updateSavingsCategoryDropdown(contactId);
     }
 }
     
@@ -1610,8 +1888,6 @@ function switchTab(tab) {
             renderContactDetails(contactId, e.target.value);
         }
     });
-
-    
     
     document.getElementById('cancel-transfer-btn').addEventListener('click', () => closeModal(transferModal));
     
@@ -1623,7 +1899,8 @@ function switchTab(tab) {
         closeModal(transferModal);
     });
 
-    document.getElementById('enable-savings-btn').addEventListener('click', () => {
+// Event listeners pour l'épargne
+document.getElementById('enable-savings-btn').addEventListener('click', () => {
     const contactId = contactDetailsView.dataset.currentContactId;
     if (contactId) {
         enableSavings(contactId);
@@ -1645,22 +1922,58 @@ document.getElementById('disable-savings-btn').addEventListener('click', () => {
     }
 });
 
-document.getElementById('add-savings-deposit-btn').addEventListener('click', () => {
+document.getElementById('manage-categories-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    renderCategoriesManagement(contactId);
+    openModal(categoriesModal);
+});
+
+document.getElementById('close-categories-modal-btn').addEventListener('click', () => {
+    closeModal(categoriesModal);
+});
+
+document.getElementById('add-category-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    const categoryName = document.getElementById('new-category-name').value;
+    if (categoryName.trim()) {
+        saveSavingsCategory(contactId, categoryName);
+        document.getElementById('new-category-name').value = '';
+    } else {
+        showToast('Veuillez entrer un nom de catégorie', 'error');
+    }
+});
+
+document.getElementById('categories-management-list').addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.delete-category-btn');
+    if (deleteBtn) {
+        deleteSavingsCategory(deleteBtn.dataset.id);
+    }
+});
+
+document.getElementById('add-savings-operation-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    const categories = savingsCategories.filter(cat => cat.contactId === contactId);
+    
+    if (categories.length === 0) {
+        showToast('Créez d\'abord une catégorie', 'error');
+        return;
+    }
+    
     document.getElementById('savings-form').reset();
     document.getElementById('savings-operation-id').value = '';
     document.getElementById('savings-operation-type').value = 'deposit';
-    document.getElementById('savings-modal-title').textContent = 'Dépôt d\'épargne';
+    document.getElementById('savings-modal-title').textContent = 'Ajouter une opération';
     document.getElementById('savings-date').valueAsDate = new Date();
+    updateSavingsCategoryDropdown(contactId);
     openModal(savingsModal);
 });
 
-document.getElementById('add-savings-withdrawal-btn').addEventListener('click', () => {
-    document.getElementById('savings-form').reset();
-    document.getElementById('savings-operation-id').value = '';
-    document.getElementById('savings-operation-type').value = 'withdrawal';
-    document.getElementById('savings-modal-title').textContent = 'Retrait d\'épargne';
-    document.getElementById('savings-date').valueAsDate = new Date();
-    openModal(savingsModal);
+document.getElementById('back-to-categories-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    currentSavingsView = 'categories';
+    document.getElementById('savings-categories-view').classList.remove('hidden');
+    document.getElementById('savings-category-detail-view').classList.add('hidden');
+    renderSavingsCategoriesList(contactId);
 });
 
 document.getElementById('cancel-savings-btn').addEventListener('click', () => closeModal(savingsModal));
@@ -1670,6 +1983,7 @@ document.getElementById('savings-form').addEventListener('submit', (e) => {
     const contactId = contactDetailsView.dataset.currentContactId;
     saveSavingsOperation({
         contactId: contactId,
+        categoryId: document.getElementById('savings-category').value,
         type: document.getElementById('savings-operation-type').value,
         amount: parseFloat(document.getElementById('savings-amount').value),
         description: document.getElementById('savings-description').value,
@@ -1678,10 +1992,10 @@ document.getElementById('savings-form').addEventListener('submit', (e) => {
     closeModal(savingsModal);
 });
 
-document.getElementById('savings-history').addEventListener('click', (e) => {
-    const deleteBtn = e.target.closest('.delete-savings-btn');
+document.getElementById('category-operations-list').addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.delete-operation-btn');
     if (deleteBtn) {
-        if (confirm('Supprimer cette opération d\'épargne ?')) {
+        if (confirm('Supprimer cette opération ?')) {
             deleteSavingsOperation(deleteBtn.dataset.id);
         }
     }
@@ -1690,6 +2004,7 @@ document.getElementById('savings-history').addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+
 
 
 
