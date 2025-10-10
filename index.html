@@ -162,6 +162,10 @@
             from { transform: translateX(400px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        #tabs-container button {
+    cursor: pointer;
+}
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -1430,7 +1434,7 @@ function switchTab(tab) {
         document.getElementById('tab-savings').classList.add('text-gray-500');
         document.getElementById('debts-view').classList.remove('hidden');
         document.getElementById('savings-view').classList.add('hidden');
-        renderContactDetails(contactId);
+        renderContactDetails(contactId, '');
     } else {
         document.getElementById('tab-savings').classList.add('border-blue-600', 'text-blue-600');
         document.getElementById('tab-savings').classList.remove('text-gray-500');
@@ -1628,6 +1632,7 @@ function switchTab(tab) {
 </script>
 </body>
 </html>
+
 
 
 
