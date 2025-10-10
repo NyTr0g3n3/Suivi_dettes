@@ -1629,9 +1629,68 @@ function switchTab(tab) {
         enableSavings(contactId);
     }
 });
+
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'tab-debts' || e.target.closest('#tab-debts')) {
+        switchTab('debts');
+    } else if (e.target.id === 'tab-savings' || e.target.closest('#tab-savings')) {
+        switchTab('savings');
+    }
+});
+
+document.getElementById('disable-savings-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    if (contactId) {
+        disableSavings(contactId);
+    }
+});
+
+document.getElementById('add-savings-deposit-btn').addEventListener('click', () => {
+    document.getElementById('savings-form').reset();
+    document.getElementById('savings-operation-id').value = '';
+    document.getElementById('savings-operation-type').value = 'deposit';
+    document.getElementById('savings-modal-title').textContent = 'Dépôt d\'épargne';
+    document.getElementById('savings-date').valueAsDate = new Date();
+    openModal(savingsModal);
+});
+
+document.getElementById('add-savings-withdrawal-btn').addEventListener('click', () => {
+    document.getElementById('savings-form').reset();
+    document.getElementById('savings-operation-id').value = '';
+    document.getElementById('savings-operation-type').value = 'withdrawal';
+    document.getElementById('savings-modal-title').textContent = 'Retrait d\'épargne';
+    document.getElementById('savings-date').valueAsDate = new Date();
+    openModal(savingsModal);
+});
+
+document.getElementById('cancel-savings-btn').addEventListener('click', () => closeModal(savingsModal));
+
+document.getElementById('savings-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const contactId = contactDetailsView.dataset.currentContactId;
+    saveSavingsOperation({
+        contactId: contactId,
+        type: document.getElementById('savings-operation-type').value,
+        amount: parseFloat(document.getElementById('savings-amount').value),
+        description: document.getElementById('savings-description').value,
+        date: document.getElementById('savings-date').valueAsDate.toISOString()
+    });
+    closeModal(savingsModal);
+});
+
+document.getElementById('savings-history').addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.delete-savings-btn');
+    if (deleteBtn) {
+        if (confirm('Supprimer cette opération d\'épargne ?')) {
+            deleteSavingsOperation(deleteBtn.dataset.id);
+        }
+    }
+});
+    
 </script>
 </body>
 </html>
+
 
 
 
