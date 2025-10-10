@@ -340,7 +340,7 @@
     </div>
     
     <!-- Modales -->
-    <div id="transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+    <div id="transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h2 id="modal-title" class="text-xl font-bold mb-4">Nouveau Prêt</h2>
             <form id="transaction-form">
@@ -376,7 +376,7 @@
             </form>
         </div>
     </div>
-    <div id="contacts-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+    <div id="contacts-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h2 class="text-xl font-bold mb-4">Gérer les Contacts</h2>
             <form id="add-contact-form" class="flex items-center mb-4">
@@ -389,7 +389,7 @@
             </div>
         </div>
     </div>
-    <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+    <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h2 class="text-xl font-bold mb-4">Remboursement</h2>
             <form id="repayment-form">
@@ -412,7 +412,7 @@
             </form>
         </div>
     </div>
-    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
             <input type="hidden" id="delete-target-id"><input type="hidden" id="delete-target-type">
             <p id="delete-confirm-message" class="text-lg mb-4">Êtes-vous sûr ?</p>
@@ -422,7 +422,7 @@
             </div>
         </div>
     </div>
-    <div id="transfer-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+    <div id="transfer-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h2 class="text-xl font-bold mb-4">Transférer la dette</h2>
             <form id="transfer-form">
@@ -492,7 +492,7 @@
     </div>
     
     <!-- Modale Gérer Catégories -->
-    <div id="categories-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden modal-enter">
+    <div id="categories-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
             <h2 class="text-xl font-bold mb-4">Gérer les catégories d'épargne</h2>
             
@@ -2004,6 +2004,7 @@ document.getElementById('category-operations-list').addEventListener('click', (e
 </script>
 </body>
 </html>
+
 
 
 
