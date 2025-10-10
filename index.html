@@ -1353,18 +1353,26 @@ function calculateSavingsBalance(contactId) {
 
 function updateSavingsDisplay(contactId) {
     const contact = contacts.find(c => c.id === contactId);
+    const enableBtn = document.getElementById('enable-savings-btn');
+    const tabsContainer = document.getElementById('tabs-container');
+    const savingsBalanceDisplay = document.getElementById('savings-balance-display');
+    
     if (!contact || !contact.savingsEnabled) {
-        document.getElementById('savings-balance-display').classList.add('hidden');
-        document.getElementById('tabs-container').classList.add('hidden');
-        document.getElementById('enable-savings-btn').classList.remove('hidden');
+        // Épargne NON activée
+        savingsBalanceDisplay.classList.add('hidden');
+        tabsContainer.classList.add('hidden');
+        enableBtn.classList.remove('hidden');
+        document.getElementById('debts-view').classList.remove('hidden');
+        document.getElementById('savings-view').classList.add('hidden');
         return;
     }
     
+    // Épargne activée
     const balance = calculateSavingsBalance(contactId);
     document.getElementById('details-savings-balance').textContent = formatCurrency(balance);
-    document.getElementById('savings-balance-display').classList.remove('hidden');
-    document.getElementById('tabs-container').classList.remove('hidden');
-    document.getElementById('enable-savings-btn').classList.add('hidden');
+    savingsBalanceDisplay.classList.remove('hidden');
+    tabsContainer.classList.remove('hidden');
+    enableBtn.classList.add('hidden');
 }
 
 function renderSavingsView(contactId) {
@@ -1620,6 +1628,7 @@ function switchTab(tab) {
 </script>
 </body>
 </html>
+
 
 
 
