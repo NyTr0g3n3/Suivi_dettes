@@ -706,27 +706,28 @@ function loadData() {
         });
 
     const categoriesRef = collection(db, 'users', currentUserId, 'savingsCategories');
-    categoriesUnsubscribe = onSnapshot(categoriesRef, (snapshot) => {
-        savingsCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-const currentContactId = contactDetailsView.dataset.currentContactId;
-
-// Mettre à jour la modale de gestion si elle est ouverte
-if (!categoriesModal.classList.contains('hidden') && currentContactId) {
-    renderCategoriesManagement(currentContactId);
-}
-
-// Mettre à jour la vue principale si on est sur l'onglet épargne
-if (!contactDetailsView.classList.contains('hidden') && currentContactId && currentTab === 'savings') {
-    if (currentSavingsView === 'categories') {
-        renderSavingsCategoriesList(currentContactId);
-        updateSavingsCategoryDropdown(currentContactId);
-    } else if (currentSavingsView === 'detail') {
-        renderCategoryDetail(currentContactId, currentCategoryId);
+categoriesUnsubscribe = onSnapshot(categoriesRef, (snapshot) => {
+    savingsCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const currentContactId = contactDetailsView.dataset.currentContactId;
+    
+    // Mettre à jour la modale de gestion si elle est ouverte
+    if (!categoriesModal.classList.contains('hidden') && currentContactId) {
+        renderCategoriesManagement(currentContactId);
     }
-} {
-        console.error("Erreur lors du chargement des catégories:", error);
-        showToast('Erreur de chargement des catégories', 'error');
-    });
+    
+    // Mettre à jour la vue principale si on est sur l'onglet épargne
+    if (!contactDetailsView.classList.contains('hidden') && currentContactId && currentTab === 'savings') {
+        if (currentSavingsView === 'categories') {
+            renderSavingsCategoriesList(currentContactId);
+            updateSavingsCategoryDropdown(currentContactId);
+        } else if (currentSavingsView === 'detail') {
+            renderCategoryDetail(currentContactId, currentCategoryId);
+        }
+    }
+}, (error) => {
+    console.error("Erreur lors du chargement des catégories:", error);
+    showToast('Erreur de chargement des catégories', 'error');
+});
     }
 
     // --- Fonctions Utilitaires et Rendu ---
@@ -1999,6 +2000,7 @@ document.getElementById('category-operations-list').addEventListener('click', (e
 </script>
 </body>
 </html>
+
 
 
 
