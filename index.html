@@ -607,22 +607,6 @@ function loadData() {
         console.error("Erreur lors du chargement des transactions:", error);
         showToast('Erreur de chargement des transactions', 'error');
     });
-    
-    // AJOUTER CETTE SECTION :
-    const savingsRef = collection(db, 'users', currentUserId, 'savings');
-    savingsUnsubscribe = onSnapshot(savingsRef, (snapshot) => {
-        savingsOperations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const currentContactId = contactDetailsView.dataset.currentContactId;
-        if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
-            if (currentTab === 'savings') {
-                renderSavingsView(currentContactId);
-            }
-            updateSavingsDisplay(currentContactId);
-        }
-    }, (error) => {
-        console.error("Erreur lors du chargement de l'épargne:", error);
-        showToast('Erreur de chargement de l\'épargne', 'error');
-    });
         
         const savingsRef = collection(db, 'users', currentUserId, 'savings');
         savingsUnsubscribe = onSnapshot(savingsRef, (snapshot) => {
@@ -1629,4 +1613,5 @@ function switchTab(tab) {
 </script>
 </body>
 </html>
+
 
