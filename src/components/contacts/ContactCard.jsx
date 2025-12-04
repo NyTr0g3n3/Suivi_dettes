@@ -1,13 +1,16 @@
 import { formatCurrency } from '../../utils/formatters';
 
-function ContactCard({ contact, onDelete }) {
+function ContactCard({ contact, onDelete, onSelect }) {
   const { name, balance, transactionCount } = contact;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition p-4">
       <div className="flex justify-between items-center">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <div
+          className="flex-1 cursor-pointer"
+          onClick={() => onSelect(contact)}
+        >
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition">
             {name}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -15,7 +18,10 @@ function ContactCard({ contact, onDelete }) {
           </p>
         </div>
 
-        <div className="text-right">
+        <div
+          className="text-right cursor-pointer"
+          onClick={() => onSelect(contact)}
+        >
           <p className={`text-xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {formatCurrency(Math.abs(balance))}
           </p>
@@ -25,7 +31,10 @@ function ContactCard({ contact, onDelete }) {
         </div>
 
         <button
-          onClick={() => onDelete(contact.id)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(contact.id);
+          }}
           className="ml-4 text-gray-400 hover:text-red-600 transition"
           title="Supprimer"
         >
