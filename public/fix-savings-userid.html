@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Correction userId pour Épargnes</title>
+    <title>Migration Épargnes vers Collection Racine</title>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -67,14 +67,13 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔧 Correction du champ userId pour les épargnes</h1>
+        <h1>🔧 Migration des épargnes</h1>
 
         <div class="info">
             <strong>Ce script va :</strong><br>
-            1. Charger toutes les opérations d'épargne<br>
-            2. Pour chaque opération, trouver sa catégorie<br>
-            3. Ajouter le champ <code>userId</code> depuis la catégorie<br>
-            4. Mettre à jour l'opération dans Firestore
+            1. Charger vos opérations d'épargne depuis <code>users/{userId}/savings</code><br>
+            2. Les copier vers la collection racine <code>savings</code><br>
+            3. Ajouter le champ <code>userId</code> à chaque opération
         </div>
 
         <div id="loginSection">
@@ -83,7 +82,7 @@
 
         <div id="fixSection" style="display: none;">
             <p id="userInfo"></p>
-            <button onclick="fixSavingsUserId()">🚀 Corriger les opérations d'épargne</button>
+            <button onclick="migrateSavings()">🚀 Migrer les opérations d'épargne</button>
         </div>
 
         <div id="log"></div>
@@ -101,8 +100,8 @@
             collection,
             getDocs,
             doc,
-            updateDoc,
-            getDoc
+            setDoc,
+            addDoc
         } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
         const firebaseConfig = {
@@ -148,82 +147,57 @@
             }
         };
 
-        window.fixSavingsUserId = async () => {
+        window.migrateSavings = async () => {
             if (!window.currentUser) {
                 log('❌ Vous devez être connecté', 'error');
                 return;
             }
 
             try {
-                log('📊 Chargement des catégories d\'épargne...', 'info');
+                const userId = window.currentUser.uid;
+                log(`📊 Recherche des opérations d'épargne pour l'utilisateur ${userId}...`, 'info');
 
-                // Load all savings categories
-                const categoriesSnapshot = await getDocs(collection(db, 'savingsCategories'));
-                const categoriesMap = {};
+                // Load savings from subcollection: users/{userId}/savings
+                const savingsSubcollectionRef = collection(db, 'users', userId, 'savings');
+                const savingsSnapshot = await getDocs(savingsSubcollectionRef);
 
-                categoriesSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    categoriesMap[doc.id] = data.userId;
-                    log(`  ✓ Catégorie: ${data.name} (userId: ${data.userId})`, 'info');
-                });
+                if (savingsSnapshot.empty) {
+                    log('⚠️  Aucune opération trouvée dans users/{userId}/savings', 'error');
+                    log('  Vérifiez que vous êtes connecté avec le bon compte', 'info');
+                    return;
+                }
 
-                log(`📊 Chargement des opérations d'épargne...`, 'info');
+                log(`  ✓ ${savingsSnapshot.size} opérations trouvées`, 'info');
 
-                // Load all savings operations
-                const savingsSnapshot = await getDocs(collection(db, 'savings'));
-                const operations = [];
-
-                savingsSnapshot.forEach(doc => {
-                    operations.push({
-                        id: doc.id,
-                        ...doc.data()
-                    });
-                });
-
-                log(`  ✓ ${operations.length} opérations trouvées`, 'info');
-
-                // Fix each operation
-                let fixed = 0;
-                let skipped = 0;
+                // Migrate each operation to root collection
+                let migrated = 0;
                 let errors = 0;
 
-                for (const op of operations) {
+                for (const savingDoc of savingsSnapshot.docs) {
                     try {
-                        // Check if userId already exists
-                        if (op.userId) {
-                            log(`  ⏭️  Opération ${op.id} - userId déjà présent`, 'info');
-                            skipped++;
-                            continue;
-                        }
+                        const savingData = savingDoc.data();
 
-                        // Get userId from category
-                        const userId = categoriesMap[op.categoryId];
+                        log(`  📝 Migration: ${savingData.description || 'Sans description'} - ${savingData.amount}€`, 'info');
 
-                        if (!userId) {
-                            log(`  ⚠️  Opération ${op.id} - catégorie ${op.categoryId} non trouvée`, 'error');
-                            errors++;
-                            continue;
-                        }
-
-                        // Update operation
-                        await updateDoc(doc(db, 'savings', op.id), {
+                        // Add to root collection with userId
+                        await setDoc(doc(db, 'savings', savingDoc.id), {
+                            ...savingData,
                             userId: userId
                         });
 
-                        log(`  ✅ Opération ${op.id} - userId ajouté (${userId})`, 'success');
-                        fixed++;
+                        log(`    ✅ Migré avec ID: ${savingDoc.id}`, 'success');
+                        migrated++;
 
                     } catch (error) {
-                        log(`  ❌ Erreur pour opération ${op.id}: ${error.message}`, 'error');
+                        log(`    ❌ Erreur: ${error.message}`, 'error');
                         errors++;
                     }
                 }
 
                 log('', 'info');
                 log('='.repeat(50), 'info');
-                log(`✅ TERMINÉ !`, 'success');
-                log(`  • ${fixed} opérations corrigées`, 'success');
-                log(`  • ${skipped} opérations déjà correctes`, 'info');
+                log(`✅ MIGRATION TERMINÉE !`, 'success');
+                log(`  • ${migrated} opérations migrées`, 'success');
                 log(`  • ${errors} erreurs`, errors > 0 ? 'error' : 'info');
                 log('='.repeat(50), 'info');
                 log('', 'info');
