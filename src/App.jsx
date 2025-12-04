@@ -5,7 +5,7 @@ import LoginView from './components/auth/LoginView';
 import Dashboard from './components/dashboard/Dashboard';
 import { subscribeToContacts } from './services/contactsService';
 import { subscribeToTransactions } from './services/transactionsService';
-import { subscribeToCategories, subscribeToSavingsOperations } from './services/savingsService';
+import { subscribeToCategories, subscribeToSavings } from './services/savingsService';
 
 function App() {
   const { user, loading } = useAuth();
@@ -14,7 +14,7 @@ function App() {
   const [contacts, setContacts] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [savingsCategories, setCategories] = useState([]);
-  const [savingsOperations, setOperations] = useState([]);
+  const [savings, setSavings] = useState([]);
 
   useEffect(() => {
     if (!user) return;
@@ -22,13 +22,13 @@ function App() {
     const unsubscribeContacts = subscribeToContacts(user.uid, setContacts);
     const unsubscribeTransactions = subscribeToTransactions(user.uid, setTransactions);
     const unsubscribeCategories = subscribeToCategories(user.uid, setCategories);
-    const unsubscribeOperations = subscribeToSavingsOperations(user.uid, setOperations);
+    const unsubscribeSavings = subscribeToSavings(user.uid, setSavings);
 
     return () => {
       unsubscribeContacts();
       unsubscribeTransactions();
       unsubscribeCategories();
-      unsubscribeOperations();
+      unsubscribeSavings();
     };
   }, [user]);
 
@@ -55,7 +55,7 @@ function App() {
       contacts={contacts}
       transactions={transactions}
       savingsCategories={savingsCategories}
-      savingsOperations={savingsOperations}
+      savings={savings}
     />
   );
 }
