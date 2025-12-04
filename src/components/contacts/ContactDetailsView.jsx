@@ -4,6 +4,7 @@ import { deleteTransaction, addRepayment, transferTransaction } from '../../serv
 import { updateContact } from '../../services/contactsService';
 import { showToast } from '../../utils/toast';
 import { exportContactTransactionsToPDF } from '../../utils/pdfExport';
+import { exportContactTransactionsToCSV } from '../../utils/csvExport';
 import AddRepaymentModal from '../modals/AddRepaymentModal';
 import EditContactModal from '../modals/EditContactModal';
 import TransferTransactionModal from '../modals/TransferTransactionModal';
@@ -69,6 +70,15 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
       showToast('PDF exporté avec succès', 'success');
     } catch (error) {
       showToast('Erreur lors de l\'export PDF', 'error');
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      exportContactTransactionsToCSV(contact, contactTransactions);
+      showToast('CSV exporté avec succès', 'success');
+    } catch (error) {
+      showToast('Erreur lors de l\'export CSV', 'error');
     }
   };
 
@@ -150,7 +160,7 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
           📄 Exporter en PDF
         </button>
         <button
-          onClick={() => showToast('Export CSV à venir', 'info')}
+          onClick={handleExportCSV}
           className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition font-medium text-sm"
         >
           📊 Exporter en CSV
