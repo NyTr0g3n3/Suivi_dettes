@@ -28,12 +28,17 @@ function Dashboard({
 
   const contactsWithBalances = contacts.map(contact => {
     const contactTransactions = transactions.filter(t => t.contactId === contact.id);
+
+    // Pour l'ancienne structure : toutes les transactions sont des prêts
+    // Pour la nouvelle structure : on différencie prêté/emprunté
     const totalOwed = contactTransactions
-      .filter(t => t.category === 'prêté')
+      .filter(t => !t.category || t.category === 'prêté' || t.category !== 'emprunté')
       .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
+
     const totalBorrowed = contactTransactions
       .filter(t => t.category === 'emprunté')
       .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
+
     const balance = totalOwed - totalBorrowed;
 
     return {
