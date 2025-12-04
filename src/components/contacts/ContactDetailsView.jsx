@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { deleteTransaction, addRepayment } from '../../services/transactionsService';
+import { deleteTransaction, addRepayment, transferTransaction } from '../../services/transactionsService';
 import { updateContact } from '../../services/contactsService';
 import { showToast } from '../../utils/toast';
 import AddRepaymentModal from '../modals/AddRepaymentModal';
 import EditContactModal from '../modals/EditContactModal';
+import TransferTransactionModal from '../modals/TransferTransactionModal';
 
-function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }) {
+function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTransaction }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [repayingTransaction, setRepayingTransaction] = useState(null);
   const [showEditContact, setShowEditContact] = useState(false);
+  const [transferringTransaction, setTransferringTransaction] = useState(null);
 
   const contactTransactions = transactions
     .filter(t => t.contactId === contact.id)
@@ -47,6 +49,16 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
       setShowEditContact(false);
     } catch (error) {
       showToast('Erreur lors de la modification', 'error');
+    }
+  };
+
+  const handleTransferTransaction = async (transactionId, newContactId) => {
+    try {
+      await transferTransaction(transactionId, newContactId);
+      showToast('Transaction transférée', 'success');
+      setTransferringTransaction(null);
+    } catch (error) {
+      showToast('Erreur lors du transfert', 'error');
     }
   };
 
@@ -189,6 +201,13 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
                   >
                     ✏️ Modifier
                   </button>
+                  <button
+                    onClick={() => setTransferringTransaction(transaction)}
+                    className="flex-1 px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900 text-purple-600 dark:text-purple-200 rounded hover:bg-purple-100 dark:hover:bg-purple-800 transition"
+                    title="Transférer vers un autre contact"
+                  >
+                    🔄 Transférer
+                  </button>
                   {!isPaid && (
                     <button
                       onClick={() => setRepayingTransaction(transaction)}
@@ -225,6 +244,17 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
           contact={contact}
           onClose={() => setShowEditContact(false)}
           onSave={handleEditContact}
+        />
+      )}
+
+      {/* Transfer Transaction Modal */}
+      {transferringTransaction && (
+        <TransferTransactionModal
+          transaction={transferringTransaction}
+          contacts={contacts}
+          currentContactId={contact.id}
+          onClose={() => setTransferringTransaction(null)}
+          onTransfer={handleTransferTransaction}
         />
       )}
     </div>
