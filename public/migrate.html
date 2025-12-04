@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Migration des données - Suivi de Dettes</title>
+    <title>Migration Structure Firestore - Suivi de Dettes</title>
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 50px auto;
             padding: 20px;
             background: #f3f4f6;
@@ -73,7 +73,8 @@
             padding: 15px;
             border-radius: 6px;
             font-family: monospace;
-            max-height: 400px;
+            font-size: 13px;
+            max-height: 500px;
             overflow-y: auto;
             margin-top: 20px;
             display: none;
@@ -84,6 +85,7 @@
         .log-success { color: #10b981; }
         .log-error { color: #ef4444; }
         .log-info { color: #60a5fa; }
+        .log-warning { color: #fbbf24; }
         #userInfo {
             background: #f3f4f6;
             padding: 15px;
@@ -91,15 +93,42 @@
             margin: 20px 0;
         }
         .hidden { display: none; }
+        .structure {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            margin: 10px 0;
+        }
+        .progress {
+            margin: 20px 0;
+        }
+        .progress-bar {
+            background: #e5e7eb;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            height: 100%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔄 Migration des données</h1>
-        <p>Cet outil va mettre à jour le <code>userId</code> de toutes vos anciennes données pour correspondre à votre compte actuel.</p>
+        <h1>🔄 Migration de Structure Firestore</h1>
+        <p>Migration des sous-collections <code>users/{userId}/*</code> vers les collections racines.</p>
 
         <div class="warning">
-            <strong>⚠️ Important :</strong> Cette opération va modifier toutes vos données dans Firestore. Assurez-vous d'être connecté avec le bon compte Google.
+            <strong>⚠️ ATTENTION :</strong> Cette opération va copier toutes vos données de l'ancienne structure vers la nouvelle. Les anciennes données ne seront PAS supprimées (vous pourrez les supprimer manuellement après vérification).
         </div>
 
         <div id="authSection">
@@ -114,31 +143,47 @@
 
         <div id="migrationSection" class="hidden">
             <div class="info">
-                <strong>📊 Collections à migrer :</strong>
-                <ul>
-                    <li>contacts</li>
-                    <li>transactions</li>
-                    <li>savingsCategories</li>
-                    <li>savingsOperations</li>
-                </ul>
+                <strong>📊 Transformation :</strong>
+                <div class="structure">
+<strong>Ancienne structure :</strong>
+users/{userId}/
+  ├── contacts/
+  ├── transactions/
+  ├── savingsCategories/
+  └── savings/
+
+<strong>Nouvelle structure :</strong>
+contacts/{id} + userId field
+transactions/{id} + userId field
+savingsCategories/{id} + userId field
+savingsOperations/{id} + userId field
+                </div>
             </div>
 
             <button onclick="previewMigration()">🔍 Prévisualiser (sans modifier)</button>
-            <button class="danger" onclick="executeMigration()">🚀 Exécuter la migration</button>
+            <button class="danger" onclick="executeMigration()" id="migrateBtn">🚀 Exécuter la migration</button>
+        </div>
+
+        <div id="progress" class="progress hidden">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+            </div>
         </div>
 
         <div id="log"></div>
 
         <div id="successSection" class="success hidden">
             <strong>✅ Migration terminée avec succès !</strong><br>
-            Vous pouvez maintenant retourner sur votre application et rafraîchir la page pour voir toutes vos données.
+            Vos données ont été copiées vers la nouvelle structure. Vous pouvez maintenant rafraîchir votre application pour voir toutes vos données.
+            <br><br>
+            <strong>💡 Prochaine étape :</strong> Après vérification, vous pouvez supprimer manuellement l'ancienne collection <code>users</code> dans Firebase Console.
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCEEf5fYsGEpF3sSmKnKdUsyAVBmBq1CII",
@@ -183,36 +228,52 @@
             }
         });
 
+        const subcollectionMapping = {
+            'contacts': 'contacts',
+            'transactions': 'transactions',
+            'savingsCategories': 'savingsCategories',
+            'savings': 'savingsOperations'  // Note: savings -> savingsOperations
+        };
+
         window.previewMigration = async () => {
             if (!currentUser) {
                 alert('Veuillez vous connecter d\'abord');
                 return;
             }
 
-            const collections = ['contacts', 'transactions', 'savingsCategories', 'savingsOperations'];
-            let total = 0;
-            let toUpdate = 0;
-
             log('=== PRÉVISUALISATION (aucune modification) ===', 'info');
+            log(`Recherche des données pour userId: ${currentUser.uid}`, 'info');
 
-            for (const collectionName of collections) {
-                const snapshot = await getDocs(collection(db, collectionName));
-                const docs = snapshot.docs;
-                const needUpdate = docs.filter(d => {
-                    const data = d.data();
-                    return !data.userId || data.userId !== currentUser.uid;
-                });
+            const userDocRef = doc(db, 'users', currentUser.uid);
 
-                total += docs.length;
-                toUpdate += needUpdate.length;
+            let totalDocs = 0;
 
-                log(`${collectionName}: ${docs.length} documents, ${needUpdate.length} à mettre à jour`, 'info');
+            for (const [oldName, newName] of Object.entries(subcollectionMapping)) {
+                try {
+                    const subcollectionRef = collection(userDocRef, oldName);
+                    const snapshot = await getDocs(subcollectionRef);
+
+                    if (snapshot.empty) {
+                        log(`${oldName}: Aucun document trouvé`, 'warning');
+                    } else {
+                        log(`${oldName}: ${snapshot.size} documents à migrer vers "${newName}"`, 'info');
+                        totalDocs += snapshot.size;
+
+                        // Afficher quelques exemples
+                        snapshot.docs.slice(0, 3).forEach(doc => {
+                            const data = doc.data();
+                            log(`  └─ ${doc.id}: ${JSON.stringify(data).substring(0, 100)}...`, 'info');
+                        });
+                    }
+                } catch (error) {
+                    log(`Erreur lors de la lecture de ${oldName}: ${error.message}`, 'error');
+                }
             }
 
-            log(`\nTotal: ${total} documents, ${toUpdate} nécessitent une mise à jour`, 'info');
+            log(`\n📊 Total: ${totalDocs} documents à migrer`, totalDocs > 0 ? 'success' : 'warning');
 
-            if (toUpdate === 0) {
-                log('✅ Aucune mise à jour nécessaire ! Toutes les données ont déjà le bon userId.', 'success');
+            if (totalDocs === 0) {
+                log('⚠️  Aucune donnée trouvée à migrer. Vérifiez que vous êtes connecté avec le bon compte.', 'warning');
             }
         };
 
@@ -222,64 +283,97 @@
                 return;
             }
 
-            if (!confirm('⚠️ ATTENTION !\n\nCette opération va modifier le userId de TOUTES les données qui ne correspondent pas à votre compte actuel.\n\nÊtes-vous sûr de vouloir continuer ?')) {
+            if (!confirm('⚠️ CONFIRMATION REQUISE\n\nCette opération va copier toutes vos données de users/{userId}/* vers les collections racines.\n\nLes anciennes données ne seront PAS supprimées (pour sécurité).\n\nVoulez-vous continuer ?')) {
                 return;
             }
 
+            document.getElementById('migrateBtn').disabled = true;
+            document.getElementById('progress').classList.remove('hidden');
+
             log('=== DÉBUT DE LA MIGRATION ===', 'info');
 
-            const collections = ['contacts', 'transactions', 'savingsCategories', 'savingsOperations'];
-            let totalUpdated = 0;
-            let totalErrors = 0;
+            const userDocRef = doc(db, 'users', currentUser.uid);
 
-            for (const collectionName of collections) {
-                log(`\nTraitement de la collection "${collectionName}"...`, 'info');
+            let totalMigrated = 0;
+            let totalErrors = 0;
+            let totalDocs = 0;
+
+            // Compter d'abord le total
+            for (const [oldName] of Object.entries(subcollectionMapping)) {
+                const snapshot = await getDocs(collection(userDocRef, oldName));
+                totalDocs += snapshot.size;
+            }
+
+            let processed = 0;
+
+            for (const [oldName, newName] of Object.entries(subcollectionMapping)) {
+                log(`\n📂 Migration de "${oldName}" vers "${newName}"...`, 'info');
 
                 try {
-                    const snapshot = await getDocs(collection(db, collectionName));
-                    const docs = snapshot.docs;
+                    const subcollectionRef = collection(userDocRef, oldName);
+                    const snapshot = await getDocs(subcollectionRef);
 
-                    for (const document of docs) {
-                        const data = document.data();
+                    if (snapshot.empty) {
+                        log(`  ⏭️  Aucun document dans ${oldName}`, 'warning');
+                        continue;
+                    }
 
-                        if (!data.userId || data.userId !== currentUser.uid) {
-                            try {
-                                await updateDoc(doc(db, collectionName, document.id), {
-                                    userId: currentUser.uid
-                                });
-                                log(`✅ ${collectionName}/${document.id} → userId mis à jour`, 'success');
-                                totalUpdated++;
-                            } catch (error) {
-                                log(`❌ ${collectionName}/${document.id} → Erreur: ${error.message}`, 'error');
-                                totalErrors++;
-                            }
-                        } else {
-                            log(`⏭️  ${collectionName}/${document.id} → Déjà à jour`, 'info');
+                    for (const document of snapshot.docs) {
+                        try {
+                            const data = document.data();
+
+                            // Ajouter le userId au document
+                            const newData = {
+                                ...data,
+                                userId: currentUser.uid
+                            };
+
+                            // Créer le document dans la nouvelle collection
+                            await setDoc(doc(db, newName, document.id), newData);
+
+                            log(`  ✅ ${document.id} migré`, 'success');
+                            totalMigrated++;
+                        } catch (error) {
+                            log(`  ❌ Erreur pour ${document.id}: ${error.message}`, 'error');
+                            totalErrors++;
                         }
+
+                        processed++;
+                        updateProgress(processed, totalDocs);
                     }
                 } catch (error) {
-                    log(`❌ Erreur lors du traitement de ${collectionName}: ${error.message}`, 'error');
+                    log(`❌ Erreur collection ${oldName}: ${error.message}`, 'error');
                     totalErrors++;
                 }
             }
 
             log(`\n=== MIGRATION TERMINÉE ===`, 'info');
-            log(`✅ ${totalUpdated} documents mis à jour`, 'success');
+            log(`✅ ${totalMigrated} documents migrés avec succès`, 'success');
             if (totalErrors > 0) {
-                log(`❌ ${totalErrors} erreurs`, 'error');
+                log(`❌ ${totalErrors} erreurs rencontrées`, 'error');
             }
 
-            if (totalUpdated > 0) {
+            document.getElementById('migrateBtn').disabled = false;
+
+            if (totalMigrated > 0) {
                 document.getElementById('successSection').classList.remove('hidden');
             }
         };
+
+        function updateProgress(current, total) {
+            const percent = Math.round((current / total) * 100);
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.width = percent + '%';
+            progressFill.textContent = percent + '%';
+        }
 
         function log(message, type = 'info') {
             const logDiv = document.getElementById('log');
             logDiv.style.display = 'block';
             const line = document.createElement('div');
             line.className = `log-line log-${type}`;
-            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            const timestamp = new Date().toLocaleTimeString();
+            line.textContent = `[${timestamp}] ${message}`;
             logDiv.appendChild(line);
             logDiv.scrollTop = logDiv.scrollHeight;
         }
