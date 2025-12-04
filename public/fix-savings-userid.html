@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correction userId pour Épargnes</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f3f4f6;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { color: #1f2937; margin-bottom: 10px; }
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 10px 5px;
+        }
+        button:hover { background: #2563eb; }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        #log {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            max-height: 500px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log-success { color: #10b981; }
+        .log-error { color: #ef4444; }
+        .log-info { color: #60a5fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Correction du champ userId pour les épargnes</h1>
+
+        <div class="info">
+            <strong>Ce script va :</strong><br>
+            1. Charger toutes les opérations d'épargne<br>
+            2. Pour chaque opération, trouver sa catégorie<br>
+            3. Ajouter le champ <code>userId</code> depuis la catégorie<br>
+            4. Mettre à jour l'opération dans Firestore
+        </div>
+
+        <div id="loginSection">
+            <button onclick="loginWithGoogle()">Se connecter avec Google</button>
+        </div>
+
+        <div id="fixSection" style="display: none;">
+            <p id="userInfo"></p>
+            <button onclick="fixSavingsUserId()">🚀 Corriger les opérations d'épargne</button>
+        </div>
+
+        <div id="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import {
+            getAuth,
+            signInWithPopup,
+            GoogleAuthProvider
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import {
+            getFirestore,
+            collection,
+            getDocs,
+            doc,
+            updateDoc,
+            getDoc
+        } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEEf5fYsGEpF3sSmKnKdUsyAVBmBq1CII",
+            authDomain: "suivi-dettes.firebaseapp.com",
+            projectId: "suivi-dettes",
+            storageBucket: "suivi-dettes.firebasestorage.app",
+            messagingSenderId: "930153396831",
+            appId: "1:930153396831:web:ff4af0cf2d68d0bc8c4cec"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.currentUser = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            const line = document.createElement('div');
+            line.className = `log-${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(line);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        window.loginWithGoogle = async () => {
+            try {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                window.currentUser = result.user;
+
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('fixSection').style.display = 'block';
+                document.getElementById('userInfo').textContent =
+                    `Connecté en tant que : ${result.user.email}`;
+
+                log(`✅ Connecté : ${result.user.email}`, 'success');
+            } catch (error) {
+                log(`❌ Erreur de connexion : ${error.message}`, 'error');
+            }
+        };
+
+        window.fixSavingsUserId = async () => {
+            if (!window.currentUser) {
+                log('❌ Vous devez être connecté', 'error');
+                return;
+            }
+
+            try {
+                log('📊 Chargement des catégories d\'épargne...', 'info');
+
+                // Load all savings categories
+                const categoriesSnapshot = await getDocs(collection(db, 'savingsCategories'));
+                const categoriesMap = {};
+
+                categoriesSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    categoriesMap[doc.id] = data.userId;
+                    log(`  ✓ Catégorie: ${data.name} (userId: ${data.userId})`, 'info');
+                });
+
+                log(`📊 Chargement des opérations d'épargne...`, 'info');
+
+                // Load all savings operations
+                const savingsSnapshot = await getDocs(collection(db, 'savings'));
+                const operations = [];
+
+                savingsSnapshot.forEach(doc => {
+                    operations.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                log(`  ✓ ${operations.length} opérations trouvées`, 'info');
+
+                // Fix each operation
+                let fixed = 0;
+                let skipped = 0;
+                let errors = 0;
+
+                for (const op of operations) {
+                    try {
+                        // Check if userId already exists
+                        if (op.userId) {
+                            log(`  ⏭️  Opération ${op.id} - userId déjà présent`, 'info');
+                            skipped++;
+                            continue;
+                        }
+
+                        // Get userId from category
+                        const userId = categoriesMap[op.categoryId];
+
+                        if (!userId) {
+                            log(`  ⚠️  Opération ${op.id} - catégorie ${op.categoryId} non trouvée`, 'error');
+                            errors++;
+                            continue;
+                        }
+
+                        // Update operation
+                        await updateDoc(doc(db, 'savings', op.id), {
+                            userId: userId
+                        });
+
+                        log(`  ✅ Opération ${op.id} - userId ajouté (${userId})`, 'success');
+                        fixed++;
+
+                    } catch (error) {
+                        log(`  ❌ Erreur pour opération ${op.id}: ${error.message}`, 'error');
+                        errors++;
+                    }
+                }
+
+                log('', 'info');
+                log('='.repeat(50), 'info');
+                log(`✅ TERMINÉ !`, 'success');
+                log(`  • ${fixed} opérations corrigées`, 'success');
+                log(`  • ${skipped} opérations déjà correctes`, 'info');
+                log(`  • ${errors} erreurs`, errors > 0 ? 'error' : 'info');
+                log('='.repeat(50), 'info');
+                log('', 'info');
+                log('🔄 Rechargez votre application pour voir les changements', 'success');
+
+            } catch (error) {
+                log(`❌ Erreur : ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+    </script>
+</body>
+</html>
