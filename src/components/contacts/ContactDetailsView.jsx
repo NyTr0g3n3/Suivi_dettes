@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { deleteTransaction } from '../../services/transactionsService';
+import { deleteTransaction, addRepayment } from '../../services/transactionsService';
 import { showToast } from '../../utils/toast';
+import AddRepaymentModal from '../modals/AddRepaymentModal';
 
 function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [repayingTransaction, setRepayingTransaction] = useState(null);
 
   const contactTransactions = transactions
     .filter(t => t.contactId === contact.id)
@@ -22,6 +24,16 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
       showToast('Transaction supprimée', 'success');
     } catch (error) {
       showToast('Erreur lors de la suppression', 'error');
+    }
+  };
+
+  const handleAddRepayment = async (transactionId, amount, date) => {
+    try {
+      await addRepayment(transactionId, amount);
+      showToast('Remboursement enregistré', 'success');
+      setRepayingTransaction(null);
+    } catch (error) {
+      showToast('Erreur lors de l\'enregistrement', 'error');
     }
   };
 
@@ -155,6 +167,7 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
                   </button>
                   {!isPaid && (
                     <button
+                      onClick={() => setRepayingTransaction(transaction)}
                       className="flex-1 px-3 py-2 text-sm bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-200 rounded hover:bg-green-100 dark:hover:bg-green-800 transition"
                     >
                       💵 Remboursement
@@ -171,6 +184,15 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
             );
           })}
         </div>
+      )}
+
+      {/* Repayment Modal */}
+      {repayingTransaction && (
+        <AddRepaymentModal
+          transaction={repayingTransaction}
+          onClose={() => setRepayingTransaction(null)}
+          onAdd={handleAddRepayment}
+        />
       )}
     </div>
   );
