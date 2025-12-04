@@ -2,10 +2,15 @@ import { useState } from 'react';
 import { addCategory, deleteCategory, addSavingsOperation } from '../../services/savingsService';
 import { formatCurrency } from '../../utils/formatters';
 import { showToast } from '../../utils/toast';
+import SavingsCategoryDetails from './SavingsCategoryDetails';
+import AddSavingsOperationModal from '../modals/AddSavingsOperationModal';
 
 function SavingsView({ categories, operations, userId }) {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [showAddOperation, setShowAddOperation] = useState(false);
+  const [operationCategory, setOperationCategory] = useState(null);
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
@@ -32,7 +37,49 @@ function SavingsView({ categories, operations, userId }) {
     }
   };
 
+  const handleAddOperation = async (operationData) => {
+    try {
+      await addSavingsOperation(userId, operationData);
+      showToast('Opération ajoutée', 'success');
+      setShowAddOperation(false);
+      setOperationCategory(null);
+    } catch (error) {
+      showToast('Erreur lors de l\'ajout', 'error');
+    }
+  };
+
   const totalBalance = categories.reduce((sum, c) => sum + (c.balance || 0), 0);
+
+  // Show category details if selected
+  if (selectedCategory) {
+    return (
+      <>
+        <SavingsCategoryDetails
+          category={selectedCategory}
+          operations={operations}
+          onBack={() => setSelectedCategory(null)}
+          onAddOperation={(cat) => {
+            setOperationCategory(cat);
+            setShowAddOperation(true);
+          }}
+          onEditOperation={(op) => {
+            // TODO: Implement edit
+            console.log('Edit operation:', op);
+          }}
+        />
+        {showAddOperation && operationCategory && (
+          <AddSavingsOperationModal
+            category={operationCategory}
+            onClose={() => {
+              setShowAddOperation(false);
+              setOperationCategory(null);
+            }}
+            onAdd={handleAddOperation}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div>
@@ -76,8 +123,11 @@ function SavingsView({ categories, operations, userId }) {
                 className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition p-4"
               >
                 <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <div
+                    className="flex-1 cursor-pointer"
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition">
                       {category.name}
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -85,14 +135,20 @@ function SavingsView({ categories, operations, userId }) {
                     </p>
                   </div>
 
-                  <div className="text-right">
+                  <div
+                    className="text-right cursor-pointer"
+                    onClick={() => setSelectedCategory(category)}
+                  >
                     <p className="text-xl font-bold text-blue-600">
                       {formatCurrency(category.balance || 0)}
                     </p>
                   </div>
 
                   <button
-                    onClick={() => handleDeleteCategory(category.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCategory(category.id);
+                    }}
                     className="ml-4 text-gray-400 hover:text-red-600 transition"
                     title="Supprimer"
                   >

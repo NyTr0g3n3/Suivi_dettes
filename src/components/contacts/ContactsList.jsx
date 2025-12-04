@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { addContact, deleteContact } from '../../services/contactsService';
-import { addTransaction } from '../../services/transactionsService';
+import { addTransaction, updateTransaction } from '../../services/transactionsService';
 import { formatCurrency } from '../../utils/formatters';
 import { showToast } from '../../utils/toast';
 import ContactCard from './ContactCard';
+import ContactDetailsView from './ContactDetailsView';
 import AddContactModal from '../modals/AddContactModal';
 import AddTransactionModal from '../modals/AddTransactionModal';
+import EditTransactionModal from '../modals/EditTransactionModal';
 
 function ContactsList({ contacts, transactions, userId }) {
   const [showAddContact, setShowAddContact] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [editingTransaction, setEditingTransaction] = useState(null);
 
   const handleAddContact = async (name) => {
     try {
@@ -42,7 +46,39 @@ function ContactsList({ contacts, transactions, userId }) {
     }
   };
 
+  const handleEditTransaction = async (transactionId, updates) => {
+    try {
+      await updateTransaction(transactionId, updates);
+      showToast('Transaction modifiée', 'success');
+      setEditingTransaction(null);
+    } catch (error) {
+      showToast('Erreur lors de la modification', 'error');
+    }
+  };
+
   const totalBalance = contacts.reduce((sum, c) => sum + c.balance, 0);
+
+  // Show contact details if a contact is selected
+  if (selectedContact) {
+    return (
+      <>
+        <ContactDetailsView
+          contact={selectedContact}
+          transactions={transactions}
+          onBack={() => setSelectedContact(null)}
+          onEditTransaction={setEditingTransaction}
+        />
+        {editingTransaction && (
+          <EditTransactionModal
+            transaction={editingTransaction}
+            contacts={contacts}
+            onClose={() => setEditingTransaction(null)}
+            onSave={handleEditTransaction}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div>
@@ -94,6 +130,7 @@ function ContactsList({ contacts, transactions, userId }) {
                 key={contact.id}
                 contact={contact}
                 onDelete={handleDeleteContact}
+                onSelect={setSelectedContact}
               />
             ))}
         </div>
