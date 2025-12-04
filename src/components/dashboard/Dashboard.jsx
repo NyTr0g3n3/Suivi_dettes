@@ -12,7 +12,7 @@ function Dashboard({
   contacts,
   transactions,
   savingsCategories,
-  savingsOperations
+  savings
 }) {
   const [currentView, setCurrentView] = useState('debts'); // 'debts' or 'savings'
   const [selectedContact, setSelectedContact] = useState(null);
@@ -73,7 +73,7 @@ function Dashboard({
           ) : (
             <SavingsView
               categories={savingsCategories}
-              operations={savingsOperations}
+              operations={savings}
               userId={user.uid}
             />
           )}

@@ -54,9 +54,9 @@ export const deleteCategory = async (categoryId) => {
 };
 
 // Operations
-export const subscribeToSavingsOperations = (userId, callback) => {
+export const subscribeToSavings = (userId, callback) => {
   const q = query(
-    collection(db, 'savingsOperations'),
+    collection(db, 'savings'),
     where('userId', '==', userId)
   );
 
@@ -71,7 +71,7 @@ export const subscribeToSavingsOperations = (userId, callback) => {
 
 export const addSavingsOperation = async (userId, operationData) => {
   try {
-    const docRef = await addDoc(collection(db, 'savingsOperations'), {
+    const docRef = await addDoc(collection(db, 'savings'), {
       userId,
       ...operationData,
       createdAt: new Date().toISOString()
@@ -98,7 +98,7 @@ export const addSavingsOperation = async (userId, operationData) => {
 
 export const updateSavingsOperation = async (operationId, oldData, newData) => {
   try {
-    await updateDoc(doc(db, 'savingsOperations', operationId), newData);
+    await updateDoc(doc(db, 'savings', operationId), newData);
 
     // Update category balance
     const categoryRef = doc(db, 'savingsCategories', newData.categoryId);
@@ -124,7 +124,7 @@ export const updateSavingsOperation = async (operationId, oldData, newData) => {
 
 export const deleteSavingsOperation = async (operationId, categoryId, amount, type) => {
   try {
-    await deleteDoc(doc(db, 'savingsOperations', operationId));
+    await deleteDoc(doc(db, 'savings', operationId));
 
     // Update category balance
     const categoryRef = doc(db, 'savingsCategories', categoryId);
