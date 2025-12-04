@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { deleteTransaction, addRepayment } from '../../services/transactionsService';
+import { updateContact } from '../../services/contactsService';
 import { showToast } from '../../utils/toast';
 import AddRepaymentModal from '../modals/AddRepaymentModal';
+import EditContactModal from '../modals/EditContactModal';
 
 function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [repayingTransaction, setRepayingTransaction] = useState(null);
+  const [showEditContact, setShowEditContact] = useState(false);
 
   const contactTransactions = transactions
     .filter(t => t.contactId === contact.id)
@@ -37,6 +40,16 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
     }
   };
 
+  const handleEditContact = async (contactId, updates) => {
+    try {
+      await updateContact(contactId, updates);
+      showToast('Contact modifié', 'success');
+      setShowEditContact(false);
+    } catch (error) {
+      showToast('Erreur lors de la modification', 'error');
+    }
+  };
+
   const totalOwed = contactTransactions
     .filter(t => !t.category || t.category === 'prêté' || t.category !== 'emprunté')
     .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
@@ -62,9 +75,20 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
         </button>
 
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {contact.name}
-          </h2>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {contact.name}
+            </h2>
+            <button
+              onClick={() => setShowEditContact(true)}
+              className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+              title="Modifier le contact"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          </div>
           <p className={`text-3xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {formatCurrency(Math.abs(balance))}
           </p>
@@ -192,6 +216,15 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
           transaction={repayingTransaction}
           onClose={() => setRepayingTransaction(null)}
           onAdd={handleAddRepayment}
+        />
+      )}
+
+      {/* Edit Contact Modal */}
+      {showEditContact && (
+        <EditContactModal
+          contact={contact}
+          onClose={() => setShowEditContact(false)}
+          onSave={handleEditContact}
         />
       )}
     </div>
