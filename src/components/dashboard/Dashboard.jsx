@@ -52,7 +52,11 @@ function Dashboard({
 
   const categoriesWithBalances = savingsCategories.map(category => {
     const categoryOps = savings.filter(op => op.categoryId === category.id);
-    const balance = categoryOps.reduce((sum, op) => sum + (op.amount || 0), 0);
+    const balance = categoryOps.reduce((sum, op) => {
+      const amount = op.amount || 0;
+      // Les dépôts augmentent le solde, les retraits le diminuent
+      return op.type === 'withdrawal' ? sum - amount : sum + amount;
+    }, 0);
 
     return {
       ...category,
