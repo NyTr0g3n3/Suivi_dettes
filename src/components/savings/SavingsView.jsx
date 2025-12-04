@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { addCategory, deleteCategory, addSavingsOperation } from '../../services/savingsService';
+import { addCategory, deleteCategory, addSavingsOperation, updateSavingsOperation } from '../../services/savingsService';
 import { formatCurrency } from '../../utils/formatters';
 import { showToast } from '../../utils/toast';
 import SavingsCategoryDetails from './SavingsCategoryDetails';
 import AddSavingsOperationModal from '../modals/AddSavingsOperationModal';
+import EditSavingsOperationModal from '../modals/EditSavingsOperationModal';
 
 function SavingsView({ categories, operations, userId }) {
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -11,6 +12,7 @@ function SavingsView({ categories, operations, userId }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [showAddOperation, setShowAddOperation] = useState(false);
   const [operationCategory, setOperationCategory] = useState(null);
+  const [editingOperation, setEditingOperation] = useState(null);
 
   const handleAddCategory = async (e) => {
     e.preventDefault();
@@ -48,6 +50,16 @@ function SavingsView({ categories, operations, userId }) {
     }
   };
 
+  const handleEditOperation = async (operationId, oldData, newData) => {
+    try {
+      await updateSavingsOperation(operationId, oldData, newData);
+      showToast('Opération modifiée', 'success');
+      setEditingOperation(null);
+    } catch (error) {
+      showToast('Erreur lors de la modification', 'error');
+    }
+  };
+
   const totalBalance = categories.reduce((sum, c) => sum + (c.balance || 0), 0);
 
   // Show category details if selected
@@ -62,10 +74,7 @@ function SavingsView({ categories, operations, userId }) {
             setOperationCategory(cat);
             setShowAddOperation(true);
           }}
-          onEditOperation={(op) => {
-            // TODO: Implement edit
-            console.log('Edit operation:', op);
-          }}
+          onEditOperation={setEditingOperation}
         />
         {showAddOperation && operationCategory && (
           <AddSavingsOperationModal
@@ -75,6 +84,13 @@ function SavingsView({ categories, operations, userId }) {
               setOperationCategory(null);
             }}
             onAdd={handleAddOperation}
+          />
+        )}
+        {editingOperation && (
+          <EditSavingsOperationModal
+            operation={editingOperation}
+            onClose={() => setEditingOperation(null)}
+            onSave={handleEditOperation}
           />
         )}
       </>
