@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migration des données - Suivi de Dettes</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f3f4f6;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        .warning {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .info {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .danger {
+            background: #ef4444;
+        }
+        .danger:hover {
+            background: #dc2626;
+        }
+        #log {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            display: none;
+        }
+        .log-line {
+            margin: 5px 0;
+        }
+        .log-success { color: #10b981; }
+        .log-error { color: #ef4444; }
+        .log-info { color: #60a5fa; }
+        #userInfo {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Migration des données</h1>
+        <p>Cet outil va mettre à jour le <code>userId</code> de toutes vos anciennes données pour correspondre à votre compte actuel.</p>
+
+        <div class="warning">
+            <strong>⚠️ Important :</strong> Cette opération va modifier toutes vos données dans Firestore. Assurez-vous d'être connecté avec le bon compte Google.
+        </div>
+
+        <div id="authSection">
+            <button id="loginBtn" onclick="signIn()">🔐 Se connecter avec Google</button>
+        </div>
+
+        <div id="userInfo" class="hidden">
+            <strong>Connecté en tant que :</strong><br>
+            <span id="userEmail"></span><br>
+            <code id="userId"></code>
+        </div>
+
+        <div id="migrationSection" class="hidden">
+            <div class="info">
+                <strong>📊 Collections à migrer :</strong>
+                <ul>
+                    <li>contacts</li>
+                    <li>transactions</li>
+                    <li>savingsCategories</li>
+                    <li>savingsOperations</li>
+                </ul>
+            </div>
+
+            <button onclick="previewMigration()">🔍 Prévisualiser (sans modifier)</button>
+            <button class="danger" onclick="executeMigration()">🚀 Exécuter la migration</button>
+        </div>
+
+        <div id="log"></div>
+
+        <div id="successSection" class="success hidden">
+            <strong>✅ Migration terminée avec succès !</strong><br>
+            Vous pouvez maintenant retourner sur votre application et rafraîchir la page pour voir toutes vos données.
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEEf5fYsGEpF3sSmKnKdUsyAVBmBq1CII",
+            authDomain: "suivi-dettes.firebaseapp.com",
+            projectId: "suivi-dettes",
+            storageBucket: "suivi-dettes.firebasestorage.app",
+            messagingSenderId: "688459270431",
+            appId: "1:688459270431:web:a7d7a9691a49984bf9c82a",
+            measurementId: "G-LCT4B4L53Q"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        let currentUser = null;
+
+        window.signIn = async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                log('Connexion réussie !', 'success');
+            } catch (error) {
+                log(`Erreur de connexion : ${error.message}`, 'error');
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('authSection').classList.add('hidden');
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('migrationSection').classList.remove('hidden');
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userId').textContent = `userId: ${user.uid}`;
+                log(`Connecté en tant que ${user.email}`, 'info');
+            } else {
+                currentUser = null;
+                document.getElementById('authSection').classList.remove('hidden');
+                document.getElementById('userInfo').classList.add('hidden');
+                document.getElementById('migrationSection').classList.add('hidden');
+            }
+        });
+
+        window.previewMigration = async () => {
+            if (!currentUser) {
+                alert('Veuillez vous connecter d\'abord');
+                return;
+            }
+
+            const collections = ['contacts', 'transactions', 'savingsCategories', 'savingsOperations'];
+            let total = 0;
+            let toUpdate = 0;
+
+            log('=== PRÉVISUALISATION (aucune modification) ===', 'info');
+
+            for (const collectionName of collections) {
+                const snapshot = await getDocs(collection(db, collectionName));
+                const docs = snapshot.docs;
+                const needUpdate = docs.filter(d => {
+                    const data = d.data();
+                    return !data.userId || data.userId !== currentUser.uid;
+                });
+
+                total += docs.length;
+                toUpdate += needUpdate.length;
+
+                log(`${collectionName}: ${docs.length} documents, ${needUpdate.length} à mettre à jour`, 'info');
+            }
+
+            log(`\nTotal: ${total} documents, ${toUpdate} nécessitent une mise à jour`, 'info');
+
+            if (toUpdate === 0) {
+                log('✅ Aucune mise à jour nécessaire ! Toutes les données ont déjà le bon userId.', 'success');
+            }
+        };
+
+        window.executeMigration = async () => {
+            if (!currentUser) {
+                alert('Veuillez vous connecter d\'abord');
+                return;
+            }
+
+            if (!confirm('⚠️ ATTENTION !\n\nCette opération va modifier le userId de TOUTES les données qui ne correspondent pas à votre compte actuel.\n\nÊtes-vous sûr de vouloir continuer ?')) {
+                return;
+            }
+
+            log('=== DÉBUT DE LA MIGRATION ===', 'info');
+
+            const collections = ['contacts', 'transactions', 'savingsCategories', 'savingsOperations'];
+            let totalUpdated = 0;
+            let totalErrors = 0;
+
+            for (const collectionName of collections) {
+                log(`\nTraitement de la collection "${collectionName}"...`, 'info');
+
+                try {
+                    const snapshot = await getDocs(collection(db, collectionName));
+                    const docs = snapshot.docs;
+
+                    for (const document of docs) {
+                        const data = document.data();
+
+                        if (!data.userId || data.userId !== currentUser.uid) {
+                            try {
+                                await updateDoc(doc(db, collectionName, document.id), {
+                                    userId: currentUser.uid
+                                });
+                                log(`✅ ${collectionName}/${document.id} → userId mis à jour`, 'success');
+                                totalUpdated++;
+                            } catch (error) {
+                                log(`❌ ${collectionName}/${document.id} → Erreur: ${error.message}`, 'error');
+                                totalErrors++;
+                            }
+                        } else {
+                            log(`⏭️  ${collectionName}/${document.id} → Déjà à jour`, 'info');
+                        }
+                    }
+                } catch (error) {
+                    log(`❌ Erreur lors du traitement de ${collectionName}: ${error.message}`, 'error');
+                    totalErrors++;
+                }
+            }
+
+            log(`\n=== MIGRATION TERMINÉE ===`, 'info');
+            log(`✅ ${totalUpdated} documents mis à jour`, 'success');
+            if (totalErrors > 0) {
+                log(`❌ ${totalErrors} erreurs`, 'error');
+            }
+
+            if (totalUpdated > 0) {
+                document.getElementById('successSection').classList.remove('hidden');
+            }
+        };
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            logDiv.style.display = 'block';
+            const line = document.createElement('div');
+            line.className = `log-line log-${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(line);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
