@@ -3,6 +3,7 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { deleteTransaction, addRepayment, transferTransaction } from '../../services/transactionsService';
 import { updateContact } from '../../services/contactsService';
 import { showToast } from '../../utils/toast';
+import { exportContactTransactionsToPDF } from '../../utils/pdfExport';
 import AddRepaymentModal from '../modals/AddRepaymentModal';
 import EditContactModal from '../modals/EditContactModal';
 import TransferTransactionModal from '../modals/TransferTransactionModal';
@@ -59,6 +60,15 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
       setTransferringTransaction(null);
     } catch (error) {
       showToast('Erreur lors du transfert', 'error');
+    }
+  };
+
+  const handleExportPDF = () => {
+    try {
+      exportContactTransactionsToPDF(contact, contactTransactions);
+      showToast('PDF exporté avec succès', 'success');
+    } catch (error) {
+      showToast('Erreur lors de l\'export PDF', 'error');
     }
   };
 
@@ -129,6 +139,22 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
+      </div>
+
+      {/* Export Buttons */}
+      <div className="flex space-x-2 mb-4">
+        <button
+          onClick={handleExportPDF}
+          className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition font-medium text-sm"
+        >
+          📄 Exporter en PDF
+        </button>
+        <button
+          onClick={() => showToast('Export CSV à venir', 'info')}
+          className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition font-medium text-sm"
+        >
+          📊 Exporter en CSV
+        </button>
       </div>
 
       {/* Transactions List */}
