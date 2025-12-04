@@ -1,0 +1,133 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    overscroll-behavior: none;
+  }
+}
+
+/* Swipe to delete animations */
+.transaction-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.transaction-content {
+  position: relative;
+  z-index: 2;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  touch-action: pan-y;
+}
+
+.transaction-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding-right: 1rem;
+  z-index: 1;
+}
+
+.swipe-action-btn {
+  width: 60px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.25rem;
+  border: none;
+  cursor: pointer;
+  transition: width 0.2s;
+}
+
+.swipe-delete {
+  background-color: #ef4444;
+}
+
+.swipe-edit {
+  background-color: #3b82f6;
+}
+
+/* Desktop vs Mobile actions */
+@media (min-width: 768px) {
+  .transaction-desktop-actions {
+    display: inline-block;
+  }
+  .transaction-actions {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .transaction-desktop-actions {
+    display: none;
+  }
+}
+
+/* Modal animations */
+.modal-enter {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-leave {
+  animation: fadeOut 0.3s ease-in forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Toast notifications */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  z-index: 9999;
+  animation: slideIn 0.3s ease-out;
+}
+
+.toast.success {
+  background-color: #10b981;
+}
+
+.toast.error {
+  background-color: #ef4444;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi de Dettes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* Mode sombre */
+        body.dark-mode {
+            background-color: #111827;
+            color: #f3f4f6;
+        }
+        body.dark-mode .bg-white { background-color: #1f2937; }
+        body.dark-mode .bg-gray-50 { background-color: #111827; }
+        body.dark-mode .bg-gray-100 { background-color: #1f2937; }
+        body.dark-mode .bg-gray-200 { background-color: #374151; }
+        body.dark-mode .text-gray-800 { color: #f3f4f6; }
+        body.dark-mode .text-gray-700 { color: #d1d5db; }
+        body.dark-mode .text-gray-600 { color: #9ca3af; }
+        body.dark-mode .text-gray-500 { color: #6b7280; }
+        body.dark-mode .text-gray-900 { color: #f9fafb; }
+        body.dark-mode .border-gray-300 { border-color: #4b5563; }
+        body.dark-mode .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3); }
+        body.dark-mode .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
+        body.dark-mode .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        body.dark-mode .hover\:bg-gray-50:hover { background-color: #374151; }
+        body.dark-mode .hover\:bg-gray-100:hover { background-color: #374151; }
+        body.dark-mode .hover\:bg-gray-300:hover { background-color: #4b5563; }
+        body.dark-mode .hover\:bg-gray-400:hover { background-color: #6b5563; }
+        body.dark-mode input, body.dark-mode select { 
+            background-color: #374151; 
+            color: #f3f4f6;
+            border-color: #4b5563;
+        }
+        body.dark-mode .bg-blue-50 { background-color: #1e3a5f; }
+        body.dark-mode .text-blue-700 { color: #93c5fd; }
+        body.dark-mode .text-blue-900 { color: #dbeafe; }
+        
+        /* Swipe to delete */
+        .transaction-item {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .transaction-content {
+            position: relative;
+            background: white;
+            z-index: 2;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: pan-y;
+        }
+        
+        body.dark-mode .transaction-content {
+            background: #1f2937;
+        }
+        
+        .transaction-actions {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            padding-right: 1rem;
+            z-index: 1;
+        }
+        
+        .swipe-action-btn {
+            width: 60px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            border: none;
+            cursor: pointer;
+            transition: width 0.2s;
+        }
+        
+        .swipe-delete {
+            background-color: #ef4444;
+        }
+        
+        .swipe-edit {
+            background-color: #3b82f6;
+        }
+        
+        /* Desktop: garder les boutons visibles */
+        @media (min-width: 768px) {
+            .transaction-desktop-actions {
+                display: inline-block;
+            }
+            .transaction-actions {
+                display: none;
+            }
+        }
+        
+        /* Mobile: cacher les boutons edit/delete, activer le swipe */
+        @media (max-width: 767px) {
+            .transaction-desktop-actions {
+                display: none;
+            }
+        }
+        
+        #empty-state {
+            text-align: center;
+            padding: 50px 20px;
+        }
+        #empty-state .icon {
+            font-size: 5rem;
+            color: #d1d5db;
+        }
+        body.dark-mode #empty-state .icon {
+            color: #4b5563;
+        }
+        #empty-state p {
+            margin-top: 1rem;
+            font-size: 1.125rem;
+            color: #6b7280;
+        }
+        .modal-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+        .modal-leave {
+            animation: fadeOut 0.3s ease-in forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+        }
+        .toast.success { background-color: #10b981; }
+        .toast.error { background-color: #ef4444; }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        #tabs-container button {
+    cursor: pointer;
+}
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Vue de Connexion -->
+    <div id="login-view" class="flex items-center justify-center min-h-screen bg-gray-100">
+        <div class="text-center p-8 bg-white shadow-lg rounded-xl max-w-sm w-full">
+            <i class="fas fa-wallet fa-3x text-blue-600 mb-4"></i>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">Suivi de Dettes</h1>
+            <p class="text-gray-500 mb-6">Connectez-vous pour synchroniser vos données sur tous vos appareils.</p>
+            <button id="sign-in-btn" class="w-full bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-50 transition flex items-center justify-center shadow-sm">
+                <svg class="w-5 h-5 mr-3" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.601-3.417-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C41.38,36.128,44,30.638,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path></svg>
+                Se connecter avec Google
+            </button>
+        </div>
+    </div>
+
+    <!-- Conteneur principal de l'application -->
+    <div id="app-container" class="hidden">
+        <div id="app" class="max-w-4xl mx-auto md:p-4">
+            
+            <!-- Vue principale (Dashboard) -->
+            <main id="dashboard-view">
+                <header class="bg-white shadow-sm sticky top-0 z-10 p-4 md:rounded-t-lg">
+                    <div class="flex justify-between items-center">
+                        <div>
+                             <h1 class="text-2xl font-bold text-gray-900">Mes Prêts</h1>
+                             <p id="user-info" class="text-xs text-gray-500 truncate"></p>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button id="toggle-dark-mode-btn" class="text-gray-600 hover:text-yellow-500" title="Mode sombre">
+                                <i class="fas fa-moon fa-lg"></i>
+                            </button>
+                            <button id="manage-contacts-btn" class="text-gray-600 hover:text-blue-600"><i class="fas fa-users fa-lg"></i></button>
+                            <button id="sign-out-btn" class="text-gray-600 hover:text-red-600"><i class="fas fa-sign-out-alt fa-lg"></i></button>
+                        </div>
+                    </div>
+                    <div id="dashboard-summary" class="mt-4 p-4 bg-blue-50 rounded-lg grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <p class="text-sm text-blue-700">Total prêté</p>
+                            <p id="total-lent" class="text-2xl md:text-3xl font-bold text-blue-900">0,00 €</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-700">Débiteurs</p>
+                            <p id="debtors-count" class="text-2xl md:text-3xl font-bold text-blue-900">0</p>
+                        </div>
+                    </div>
+                </header>
+    
+                <div id="contact-list-container" class="p-4">
+                    <div id="contact-list" class="space-y-3"></div>
+                    <div id="empty-state" class="hidden">
+                        <div class="icon"><i class="fas fa-hand-holding-usd"></i></div>
+                        <p>Aucun prêt en cours. Appuyez sur '+' pour commencer.</p>
+                    </div>
+                </div>
+            </main>
+    
+            <!-- Vue Détails du Contact -->
+            <section id="contact-details-view" class="hidden p-4">
+                <header class="flex items-center mb-4">
+                    <button id="back-to-dashboard-btn" class="mr-4 text-gray-600 hover:text-blue-600"><i class="fas fa-arrow-left fa-lg"></i></button>
+                    <div class="flex-grow">
+                        <h2 id="details-contact-name" class="text-2xl font-bold"></h2>
+                        <p class="text-gray-500">Total dû : <span id="details-total-due" class="font-semibold"></span></p>
+                        <p id="savings-balance-display" class="text-blue-600 hidden">Épargne : <span id="details-savings-balance" class="font-semibold"></span></p>
+                    </div>
+                </header>
+                
+                <!-- Onglets Dettes / Épargne -->
+                <div id="tabs-container" class="flex border-b border-gray-300 mb-4 hidden">
+                    <button id="tab-debts" class="flex-1 py-2 text-center font-semibold border-b-2 border-blue-600 text-blue-600">
+                        Dettes
+                    </button>
+                    <button id="tab-savings" class="flex-1 py-2 text-center font-semibold text-gray-500 hover:text-blue-600">
+                        Épargne
+                    </button>
+                </div>
+                
+                <!-- Vue Dettes -->
+                <div id="debts-view">
+                    <!-- Barre de recherche -->
+                    <div class="mb-4">
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="transaction-search" 
+                                placeholder="Rechercher une transaction..." 
+                                class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            >
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex space-x-2 mb-4">
+                        <button id="add-global-repayment-btn" class="flex-1 bg-green-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-700 transition"><i class="fas fa-hand-holding-usd mr-2"></i>Encaisser</button>
+                        <button id="export-pdf-btn" class="flex-1 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-700 transition"><i class="fas fa-file-pdf mr-2"></i>PDF</button>
+                        <button id="export-csv-btn" class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-file-csv mr-2"></i>CSV</button>
+                    </div>
+                    <div id="transaction-history" class="space-y-3"></div>
+                    <div id="no-results-message" class="hidden text-center text-gray-500 mt-8">
+                        <i class="fas fa-search text-4xl mb-2"></i>
+                        <p>Aucune transaction trouvée</p>
+                    </div>
+                </div>
+                
+                <!-- Vue Épargne -->
+<div id="savings-view" class="hidden">
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 rounded">
+        <div class="flex items-start">
+            <i class="fas fa-piggy-bank text-blue-600 text-2xl mr-3 mt-1"></i>
+            <div class="flex-grow">
+                <p class="font-semibold text-blue-900">Compte d'épargne</p>
+                <p class="text-sm text-blue-700">Argent que vous gardez pour cette personne</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vue principale : Liste des catégories -->
+    <div id="savings-categories-view">
+        <div class="flex space-x-2 mb-4">
+            <button id="manage-categories-btn" class="flex-1 bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-purple-700 transition"><i class="fas fa-tags mr-2"></i>Gérer catégories</button>
+            <button id="add-savings-operation-btn" class="flex-1 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition"><i class="fas fa-plus-circle mr-2"></i>Ajouter opération</button>
+            <button id="disable-savings-btn" class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div id="categories-list" class="space-y-2 mb-4"></div>
+        
+        <div id="no-categories-message" class="text-center text-gray-500 mt-8">
+            <i class="fas fa-tags text-4xl mb-2"></i>
+            <p>Aucune catégorie. Cliquez sur "Gérer catégories" pour commencer.</p>
+        </div>
+        
+        <div class="bg-gray-100 p-3 rounded-lg mt-4">
+            <p class="text-center font-bold text-gray-700">Total épargne : <span id="total-savings-amount">0,00 €</span></p>
+        </div>
+    </div>
+    
+    <!-- Vue détail : Opérations d'une catégorie -->
+    <div id="savings-category-detail-view" class="hidden">
+        <div class="mb-4">
+            <button id="back-to-categories-btn" class="text-blue-600 hover:text-blue-800 font-semibold">
+                <i class="fas fa-arrow-left mr-2"></i>Retour aux catégories
+            </button>
+        </div>
+        
+        <div class="bg-white border-2 border-blue-200 p-4 rounded-lg mb-4">
+            <h3 id="category-detail-name" class="text-xl font-bold text-gray-800 mb-1"></h3>
+            <p class="text-2xl font-bold text-blue-600" id="category-detail-balance">0,00 €</p>
+        </div>
+        
+        <div id="category-operations-list" class="space-y-3"></div>
+        
+        <div id="no-operations-message" class="hidden text-center text-gray-500 mt-8">
+            <i class="fas fa-inbox text-4xl mb-2"></i>
+            <p>Aucune opération dans cette catégorie</p>
+        </div>
+    </div>
+</div>
+                
+                <!-- Bouton activer épargne (visible seulement si pas activée) -->
+                <button id="enable-savings-btn" class="hidden w-full bg-blue-100 text-blue-700 font-semibold py-3 px-4 rounded-lg hover:bg-blue-200 transition border-2 border-blue-300 border-dashed">
+                    <i class="fas fa-piggy-bank mr-2"></i>Activer le compte d'épargne
+                </button>
+            </section>
+    
+            <!-- Bouton d'action flottant -->
+            <button id="add-transaction-btn" class="fixed bottom-6 right-6 bg-blue-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-blue-700 transition transform hover:scale-110">
+                <i class="fas fa-plus fa-2x"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Modales -->
+    <div id="transaction-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 id="modal-title" class="text-xl font-bold mb-4">Nouveau Prêt</h2>
+            <form id="transaction-form">
+                <input type="hidden" id="transaction-id">
+                <div class="mb-4">
+                    <label for="contact-select" class="block text-sm font-medium text-gray-700">Pour qui ?</label>
+                    <select id="contact-select" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="amount" class="block text-sm font-medium text-gray-700">Montant (€)</label>
+                        <input type="number" id="amount" step="0.01" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="25,50">
+                    </div>
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                    <input type="text" id="description" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Courses, restaurant...">
+                </div>
+                <div class="mb-4">
+                    <label for="category" class="block text-sm font-medium text-gray-700">Catégorie</label>
+                    <select id="category" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option>Cash</option> <option>Courses</option> <option>Restaurant</option> <option>Transport</option> <option>Loisirs</option> <option>Autre</option>
+                    </select>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-transaction-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Sauvegarder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="contacts-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4">Gérer les Contacts</h2>
+            <form id="add-contact-form" class="flex items-center mb-4">
+                <input type="text" id="new-contact-name" class="flex-grow border-gray-300 rounded-l-md shadow-sm" placeholder="Nom du contact" required>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-r-md hover:bg-blue-700"><i class="fas fa-plus"></i></button>
+            </form>
+            <div id="all-contacts-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+             <div class="flex justify-end mt-4">
+                <button type="button" id="close-contacts-modal-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Fermer</button>
+            </div>
+        </div>
+    </div>
+    <div id="repayment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4">Remboursement</h2>
+            <form id="repayment-form">
+                <input type="hidden" id="repayment-transaction-id">
+                <p id="repayment-context-text" class="mb-2">Montant dû : <span id="repayment-due-amount" class="font-bold"></span></p>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="repayment-amount" class="block text-sm font-medium text-gray-700">Montant remboursé (€)</label>
+                        <input type="number" id="repayment-amount" step="0.01" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="repayment-date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="repayment-date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-repayment-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
+                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Confirmer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
+            <input type="hidden" id="delete-target-id"><input type="hidden" id="delete-target-type">
+            <p id="delete-confirm-message" class="text-lg mb-4">Êtes-vous sûr ?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-delete-btn" class="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-400">Annuler</button>
+                <button id="confirm-delete-btn" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700">Supprimer</button>
+            </div>
+        </div>
+    </div>
+    <div id="transfer-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4">Transférer la dette</h2>
+            <form id="transfer-form">
+                <input type="hidden" id="transfer-transaction-id">
+                <p id="transfer-info" class="mb-4 text-sm text-gray-600"></p>
+                <div class="mb-4">
+                    <label for="transfer-to-contact" class="block text-sm font-medium text-gray-700">Transférer à</label>
+                    <select id="transfer-to-contact" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"></select>
+                </div>
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                    <p class="text-sm text-yellow-700">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        La transaction sera transférée avec tous ses détails (montant, date, remboursements partiels).
+                    </p>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-transfer-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
+                    <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">Transférer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<!-- Modale Ajouter/Modifier opération d'épargne -->
+    <div id="savings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 id="savings-modal-title" class="text-xl font-bold mb-4">Ajouter une opération</h2>
+            <form id="savings-form">
+                <input type="hidden" id="savings-operation-id">
+                
+                <div class="mb-4">
+                    <label for="savings-operation-type" class="block text-sm font-medium text-gray-700">Type</label>
+                    <select id="savings-operation-type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="deposit">Dépôt</option>
+                        <option value="withdrawal">Retrait</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="savings-category" class="block text-sm font-medium text-gray-700">Catégorie</label>
+                    <select id="savings-category" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Sélectionner une catégorie</option>
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="savings-amount" class="block text-sm font-medium text-gray-700">Montant (€)</label>
+                        <input type="number" id="savings-amount" step="0.01" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="150,00">
+                    </div>
+                    <div>
+                        <label for="savings-date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="savings-date" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="savings-description" class="block text-sm font-medium text-gray-700">Description</label>
+                    <input type="text" id="savings-description" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Salaire janvier, Retrait...">
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancel-savings-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Annuler</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Sauvegarder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modale Gérer Catégories -->
+    <div id="categories-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+            <h2 class="text-xl font-bold mb-4">Gérer les catégories d'épargne</h2>
+            
+            <div id="categories-management-list" class="space-y-2 mb-4 max-h-64 overflow-y-auto"></div>
+            
+            <div class="mb-4">
+                <input type="text" id="new-category-name" placeholder="Nom de la nouvelle catégorie" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" id="close-categories-modal-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Fermer</button>
+                <button type="button" id="add-category-btn" class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">Ajouter catégorie</button>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+
+<script type="module">
+    // Importations Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, query, where, onSnapshot, addDoc, doc, deleteDoc, updateDoc, writeBatch, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- Configuration Firebase ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyCEEf5fYsGEpF3sSmKnKdUsyAVBmBq1CII",
+        authDomain: "suivi-dettes.firebaseapp.com",
+        projectId: "suivi-dettes",
+        storageBucket: "suivi-dettes.firebasestorage.app",
+        messagingSenderId: "688459270431",
+        appId: "1:688459270431:web:a7d7a9691a49984bf9c82a",
+        measurementId: "G-LCT4B4L53Q"
+    };
+    
+    // --- Initialisation Firebase ---
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // --- Variables globales ---
+let currentUserId = null;
+let contacts = [];
+let transactions = [];
+let savingsOperations = [];
+let savingsCategories = [];
+let currentSavingsView = 'categories'; // 'categories' ou 'detail'
+let currentCategoryId = null;
+let currentTab = 'debts'; // 'debts' ou 'savings'
+let contactsUnsubscribe = () => {};
+let transactionsUnsubscribe = () => {};
+let savingsUnsubscribe = () => {};
+let categoriesUnsubscribe = () => {};
+
+    // --- Sélecteurs d'éléments DOM ---
+    const loginView = document.getElementById('login-view');
+    const appContainer = document.getElementById('app-container');
+    const signInBtn = document.getElementById('sign-in-btn');
+    const signOutBtn = document.getElementById('sign-out-btn');
+    const userInfo = document.getElementById('user-info');
+    
+    const dashboardView = document.getElementById('dashboard-view');
+    const contactDetailsView = document.getElementById('contact-details-view');
+    const addTransactionBtn = document.getElementById('add-transaction-btn');
+    const transactionModal = document.getElementById('transaction-modal');
+    const contactsModal = document.getElementById('contacts-modal');
+    const repaymentModal = document.getElementById('repayment-modal');
+    const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+    const transferModal = document.getElementById('transfer-modal');
+    const savingsModal = document.getElementById('savings-modal');
+    const categoriesModal = document.getElementById('categories-modal');
+
+    // --- Système de notifications ---
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-in forwards';
+            setTimeout(() => document.body.removeChild(toast), 300);
+        }, 3000);
+    }
+
+    // --- Mode sombre ---
+    function initDarkMode() {
+        const darkMode = localStorage.getItem('darkMode') === 'true';
+        if (darkMode) {
+            document.body.classList.add('dark-mode');
+            updateDarkModeIcon(true);
+        }
+    }
+
+    function toggleDarkMode() {
+        const isDark = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', isDark);
+        updateDarkModeIcon(isDark);
+    }
+
+    function updateDarkModeIcon(isDark) {
+        const icon = document.querySelector('#toggle-dark-mode-btn i');
+        if (icon) {
+            icon.className = isDark ? 'fas fa-sun fa-lg' : 'fas fa-moon fa-lg';
+        }
+    }
+
+    // Initialiser le mode sombre au chargement
+    initDarkMode();
+
+    // --- Authentification ---
+    onAuthStateChanged(auth, (user) => {
+        contactsUnsubscribe();
+        transactionsUnsubscribe();
+        savingsUnsubscribe();
+        categoriesUnsubscribe();
+
+        if (user) {
+            currentUserId = user.uid;
+            userInfo.textContent = user.displayName || user.email;
+            
+            loginView.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            
+            loadData();
+        } else {
+            currentUserId = null;
+            contacts = [];
+            transactions = [];
+            savingsOperations = [];
+            savingsCategories = [];
+            renderDashboard();
+            
+            loginView.classList.remove('hidden');
+            appContainer.classList.add('hidden');
+        }
+    });
+
+    async function signInWithGoogle() {
+        const provider = new GoogleAuthProvider();
+        try {
+            await signInWithPopup(auth, provider);
+            showToast('Connexion réussie !');
+        } catch (error) {
+            console.error("Erreur de connexion avec Google:", error);
+            showToast('Erreur de connexion. Veuillez réessayer.', 'error');
+        }
+    }
+
+    async function signOutUser() {
+        try {
+            await signOut(auth);
+            showToast('Déconnexion réussie');
+        } catch (error) {
+            console.error("Erreur de déconnexion:", error);
+            showToast('Erreur lors de la déconnexion', 'error');
+        }
+    }
+
+    signInBtn.addEventListener('click', signInWithGoogle);
+    signOutBtn.addEventListener('click', signOutUser);
+    document.getElementById('toggle-dark-mode-btn').addEventListener('click', toggleDarkMode);
+    
+// --- Chargement des données ---
+function loadData() {
+    if (!currentUserId) return;
+    
+    const contactsRef = collection(db, 'users', currentUserId, 'contacts');
+    contactsUnsubscribe = onSnapshot(contactsRef, (snapshot) => {
+        contacts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderAllContactsList();
+        updateContactDropdown();
+        renderDashboard();
+    }, (error) => {
+        console.error("Erreur lors du chargement des contacts:", error);
+        showToast('Erreur de chargement des contacts', 'error');
+    });
+
+    const transactionsRef = collection(db, 'users', currentUserId, 'transactions');
+    transactionsUnsubscribe = onSnapshot(transactionsRef, (snapshot) => {
+        transactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderDashboard();
+        const currentContactId = contactDetailsView.dataset.currentContactId;
+        if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
+            const searchQuery = document.getElementById('transaction-search').value;
+            if (currentTab === 'debts') {
+                renderContactDetails(currentContactId, searchQuery);
+            }
+        }
+    }, (error) => {
+        console.error("Erreur lors du chargement des transactions:", error);
+        showToast('Erreur de chargement des transactions', 'error');
+    });
+        
+        const savingsRef = collection(db, 'users', currentUserId, 'savings');
+        savingsUnsubscribe = onSnapshot(savingsRef, (snapshot) => {
+            savingsOperations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const currentContactId = contactDetailsView.dataset.currentContactId;
+            if (!contactDetailsView.classList.contains('hidden') && currentContactId) {
+                if (currentTab === 'savings') {
+                    if (currentSavingsView === 'categories') {
+    renderSavingsCategoriesList(currentContactId);
+} else if (currentSavingsView === 'detail') {
+    renderCategoryDetail(currentContactId, currentCategoryId);
+}
+                }
+                updateSavingsDisplay(currentContactId);
+            }
+        }, (error) => {
+            console.error("Erreur lors du chargement de l'épargne:", error);
+            showToast('Erreur de chargement de l\'épargne', 'error');
+        });
+
+    const categoriesRef = collection(db, 'users', currentUserId, 'savingsCategories');
+categoriesUnsubscribe = onSnapshot(categoriesRef, (snapshot) => {
+    savingsCategories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const currentContactId = contactDetailsView.dataset.currentContactId;
+    
+    // Mettre à jour la modale de gestion si elle est ouverte
+    if (!categoriesModal.classList.contains('hidden') && currentContactId) {
+        renderCategoriesManagement(currentContactId);
+    }
+    
+    // Mettre à jour la vue principale si on est sur l'onglet épargne
+    if (!contactDetailsView.classList.contains('hidden') && currentContactId && currentTab === 'savings') {
+        if (currentSavingsView === 'categories') {
+            renderSavingsCategoriesList(currentContactId);
+            updateSavingsCategoryDropdown(currentContactId);
+        } else if (currentSavingsView === 'detail') {
+            renderCategoryDetail(currentContactId, currentCategoryId);
+        }
+    }
+}, (error) => {
+    console.error("Erreur lors du chargement des catégories:", error);
+    showToast('Erreur de chargement des catégories', 'error');
+});
+    }
+
+    // --- Fonctions Utilitaires et Rendu ---
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+    }
+    
+    function formatCurrencyForPDF(value) {
+        // Format sans espace pour éviter les problèmes dans le PDF
+        return value.toFixed(2).replace('.', ',') + ' EUR';
+    }
+
+    function renderDashboard() {
+        const contactList = document.getElementById('contact-list');
+        const emptyState = document.getElementById('empty-state');
+        const debtsByContact = {};
+        let totalLent = 0;
+
+        transactions.forEach(t => {
+            if (!t.isPaid) {
+                const due = t.amount - (t.paidAmount || 0);
+                if (due > 0.001) {
+                    debtsByContact[t.contactId] = (debtsByContact[t.contactId] || 0) + due;
+                    totalLent += due;
+                }
+            }
+        });
+
+        document.getElementById('total-lent').textContent = formatCurrency(totalLent);
+        const debtorsCount = Object.keys(debtsByContact).length;
+        document.getElementById('debtors-count').textContent = debtorsCount;
+        contactList.innerHTML = '';
+        
+        if (debtorsCount === 0) {
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+        }
+
+        const sortedContactIds = Object.keys(debtsByContact).sort((a, b) => debtsByContact[b] - debtsByContact[a]);
+
+        for (const contactId of sortedContactIds) {
+            const contact = contacts.find(c => c.id === contactId);
+            if (contact) {
+                let lastRepaymentHTML = '';
+                if (contact.lastRepaymentDate) {
+                    const date = new Date(contact.lastRepaymentDate);
+                    const formattedDate = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    lastRepaymentHTML = `<p class="text-xs text-gray-400 mt-1">Dernier remb. le ${formattedDate}</p>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'bg-white p-4 rounded-lg shadow-sm flex justify-between items-center cursor-pointer hover:bg-gray-100 transition';
+                card.dataset.contactId = contactId;
+                card.innerHTML = `
+                    <div>
+                        <p class="font-semibold text-lg">${contact.name}</p>
+                        ${lastRepaymentHTML || '<p class="text-xs text-gray-400 mt-1">Aucun remboursement</p>'}
+                    </div>
+                    <p class="font-bold text-xl text-red-600">${formatCurrency(debtsByContact[contactId])}</p>
+                `;
+                card.addEventListener('click', () => showContactDetails(contactId));
+                contactList.appendChild(card);
+            }
+        }
+    }
+    
+    function renderContactDetails(contactId, searchQuery = '') {
+        const contact = contacts.find(c => c.id === contactId);
+        if (!contact) return;
+
+        document.getElementById('details-contact-name').textContent = contact.name;
+        
+        let contactTransactions = transactions
+            .filter(t => t.contactId === contactId)
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        const totalDue = contactTransactions.reduce((acc, t) => {
+             const due = t.amount - (t.paidAmount || 0);
+             return acc + (due > 0 ? due : 0);
+        }, 0);
+        document.getElementById('details-total-due').textContent = formatCurrency(totalDue);
+        
+        // Filtrer par recherche si une requête existe
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            contactTransactions = contactTransactions.filter(t => 
+                t.description.toLowerCase().includes(query) ||
+                t.category.toLowerCase().includes(query) ||
+                t.amount.toString().includes(query) ||
+                new Date(t.date).toLocaleDateString('fr-FR').includes(query)
+            );
+        }
+        
+        const historyContainer = document.getElementById('transaction-history');
+        const noResultsMessage = document.getElementById('no-results-message');
+        historyContainer.innerHTML = '';
+
+        if (contactTransactions.length === 0) {
+            historyContainer.classList.add('hidden');
+            noResultsMessage.classList.remove('hidden');
+            if (searchQuery.trim()) {
+                noResultsMessage.querySelector('p').textContent = `Aucune transaction trouvée pour "${searchQuery}"`;
+            } else {
+                noResultsMessage.querySelector('p').textContent = `Aucune transaction avec ${contact.name}.`;
+            }
+            return;
+        }
+        
+        historyContainer.classList.remove('hidden');
+        noResultsMessage.classList.add('hidden');
+
+        contactTransactions.forEach(t => {
+            const isFullyPaid = t.isPaid || (t.amount - (t.paidAmount || 0) < 0.01);
+            const due = t.amount - (t.paidAmount || 0);
+            const card = document.createElement('div');
+            card.className = `transaction-item bg-white rounded-lg shadow-sm border-l-4 ${isFullyPaid ? 'border-green-500' : 'border-red-500'}`;
+            const formattedDate = new Date(t.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            card.innerHTML = `
+                <!-- Actions cachées pour le swipe (mobile uniquement) -->
+                <div class="transaction-actions">
+                    <button data-id="${t.id}" class="swipe-action-btn swipe-edit" data-action="edit">
+                        <i class="fas fa-pen"></i>
+                    </button>
+                    <button data-id="${t.id}" class="swipe-action-btn swipe-delete" data-action="delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                
+                <!-- Contenu de la transaction -->
+                <div class="transaction-content p-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold">${t.description} <span class="text-sm font-normal text-gray-400">(${t.category})</span></p>
+                            <p class="text-sm text-gray-500">${formattedDate}</p>
+                        </div>
+                        <div class="text-right">
+                             <p class="font-bold text-lg ${isFullyPaid ? 'text-gray-500 line-through' : 'text-gray-800'}">${formatCurrency(t.amount)}</p>
+                             ${!isFullyPaid && (t.paidAmount || 0) > 0 ? `<p class="text-xs text-yellow-600">Partiel: ${formatCurrency(t.paidAmount)}</p>` : ''}
+                             ${!isFullyPaid ? `<p class="text-xs text-red-600">Dû: ${formatCurrency(due)}</p>` : `<p class="text-xs text-green-600">Remboursé</p>`}
+                        </div>
+                    </div>
+                    
+                    <!-- Tous les boutons (desktop = tous visibles, mobile = rembourser/transférer visibles, edit/delete via swipe) -->
+                    <div class="flex justify-end space-x-2 mt-2">
+                        ${!isFullyPaid ? `<button data-id="${t.id}" class="pay-btn bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-green-200">Rembourser</button>` : ''}
+                        <button data-id="${t.id}" class="transfer-btn bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full hover:bg-purple-200"><i class="fas fa-exchange-alt"></i> Transférer</button>
+                        <button data-id="${t.id}" class="edit-transaction-btn transaction-desktop-actions text-gray-400 hover:text-blue-500"><i class="fas fa-pen"></i></button>
+                        <button data-id="${t.id}" class="delete-transaction-btn transaction-desktop-actions text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+            historyContainer.appendChild(card);
+        });
+        
+        // Initialiser le swipe pour toutes les transactions
+        initSwipeToDelete();
+        updateSavingsDisplay(contactId);
+    }
+    
+    function renderAllContactsList() {
+        const listEl = document.getElementById('all-contacts-list');
+        listEl.innerHTML = '';
+        if (contacts.length === 0) {
+             listEl.innerHTML = '<p class="text-gray-500 text-center">Aucun contact ajouté.</p>';
+             return;
+        }
+        contacts.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'flex justify-between items-center bg-gray-100 p-2 rounded';
+            item.innerHTML = `<span>${c.name}</span><button data-id="${c.id}" class="delete-contact-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>`;
+            listEl.appendChild(item);
+        });
+    }
+    
+    function updateContactDropdown() {
+        const select = document.getElementById('contact-select');
+        select.innerHTML = '<option value="">Sélectionner un contact</option>';
+        contacts.sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.id;
+            option.textContent = c.name;
+            select.appendChild(option);
+        });
+    }
+
+    function showDashboard() {
+        dashboardView.classList.remove('hidden');
+        contactDetailsView.classList.add('hidden');
+        contactDetailsView.dataset.currentContactId = '';
+        addTransactionBtn.classList.remove('hidden');
+        document.getElementById('transaction-search').value = '';
+    }
+
+    function showContactDetails(contactId) {
+        dashboardView.classList.add('hidden');
+        contactDetailsView.classList.remove('hidden');
+        addTransactionBtn.classList.add('hidden');
+        contactDetailsView.dataset.currentContactId = contactId;
+        document.getElementById('transaction-search').value = '';
+        currentTab = 'debts';
+        renderContactDetails(contactId);
+        updateSavingsDisplay(contactId);
+    }
+    
+    function openModal(modal) {
+        modal.classList.remove('hidden');
+        modal.classList.remove('modal-leave');
+        modal.classList.add('modal-enter');
+    }
+
+    function closeModal(modal) {
+        modal.classList.remove('modal-enter');
+        modal.classList.add('modal-leave');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+    
+    // --- Logique Métier (Firestore) ---
+    async function addContact(name) {
+        if (!currentUserId || !name.trim()) return;
+        try {
+            await addDoc(collection(db, 'users', currentUserId, 'contacts'), { 
+                name: name.trim(),
+                createdAt: new Date().toISOString()
+            });
+            showToast('Contact ajouté avec succès');
+        } catch (error) { 
+            console.error("Erreur ajout contact:", error); 
+            showToast('Erreur lors de l\'ajout du contact', 'error');
+        }
+    }
+
+    async function deleteContact(contactId) {
+        if (!currentUserId) return;
+        try {
+            const batch = writeBatch(db);
+            const q = query(collection(db, 'users', currentUserId, 'transactions'), where("contactId", "==", contactId));
+            const snapshot = await getDocs(q);
+            snapshot.forEach(doc => { batch.delete(doc.ref); });
+            batch.delete(doc(db, 'users', currentUserId, 'contacts', contactId));
+            await batch.commit();
+            if (contactDetailsView.dataset.currentContactId === contactId) showDashboard();
+            showToast('Contact supprimé avec succès');
+        } catch (error) { 
+            console.error("Erreur suppression contact:", error); 
+            showToast('Erreur lors de la suppression', 'error');
+        }
+    }
+    
+    async function saveTransaction(data) {
+        if (!currentUserId) return;
+        const transactionsRef = collection(db, 'users', currentUserId, 'transactions');
+        try {
+            if (data.id) {
+                const docRef = doc(db, 'users', currentUserId, 'transactions', data.id);
+                const existingTransaction = transactions.find(t=>t.id===data.id) || {};
+                await updateDoc(docRef, {
+                    contactId: data.contactId, 
+                    amount: data.amount, 
+                    description: data.description, 
+                    category: data.category, 
+                    date: data.date, 
+                    isPaid: data.amount <= (existingTransaction.paidAmount || 0)
+                });
+                showToast('Transaction modifiée avec succès');
+            } else {
+                 await addDoc(transactionsRef, {
+                    contactId: data.contactId, 
+                    amount: data.amount, 
+                    description: data.description, 
+                    category: data.category, 
+                    date: data.date, 
+                    isPaid: false, 
+                    paidAmount: 0
+                });
+                showToast('Transaction ajoutée avec succès');
+            }
+        } catch (error) { 
+            console.error("Erreur sauvegarde transaction:", error); 
+            showToast('Erreur lors de la sauvegarde', 'error');
+        }
+    }
+    
+    async function deleteTransaction(transactionId) {
+        if (!currentUserId) return;
+        try {
+            await deleteDoc(doc(db, 'users', currentUserId, 'transactions', transactionId));
+            showToast('Transaction supprimée avec succès');
+        } catch (error) { 
+            console.error("Erreur suppression transaction:", error); 
+            showToast('Erreur lors de la suppression', 'error');
+        }
+    }
+
+    async function saveRepayment(transactionId, amount, repaymentDate) {
+        if (!currentUserId || amount <= 0) return;
+        const transaction = transactions.find(t => t.id === transactionId);
+        if (!transaction) return;
+        try {
+            const newPaidAmount = (transaction.paidAmount || 0) + amount;
+            await updateDoc(doc(db, 'users', currentUserId, 'transactions', transactionId), {
+                paidAmount: newPaidAmount, 
+                isPaid: newPaidAmount >= transaction.amount
+            });
+            await updateDoc(doc(db, 'users', currentUserId, 'contacts', transaction.contactId), { 
+                lastRepaymentDate: repaymentDate || new Date().toISOString()
+            });
+            showToast('Remboursement enregistré avec succès');
+        } catch (error) { 
+            console.error("Erreur sauvegarde remboursement:", error); 
+            showToast('Erreur lors du remboursement', 'error');
+        }
+    }
+    
+    async function saveGlobalRepayment(contactId, totalRepayment, repaymentDate) {
+        if (!currentUserId || totalRepayment <= 0) return;
+        const batch = writeBatch(db);
+        let remainingRepayment = totalRepayment;
+        const unpaidTransactions = transactions
+            .filter(t => t.contactId === contactId && !t.isPaid)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        for (const t of unpaidTransactions) {
+            if (remainingRepayment <= 0) break;
+            const due = t.amount - (t.paidAmount || 0);
+            const docRef = doc(db, 'users', currentUserId, 'transactions', t.id);
+            if (remainingRepayment >= due) {
+                batch.update(docRef, { paidAmount: t.amount, isPaid: true });
+                remainingRepayment -= due;
+            } else {
+                batch.update(docRef, { paidAmount: (t.paidAmount || 0) + remainingRepayment, isPaid: false });
+                remainingRepayment = 0;
+            }
+        }
+        try {
+            await batch.commit();
+            await updateDoc(doc(db, 'users', currentUserId, 'contacts', contactId), { 
+                lastRepaymentDate: repaymentDate || new Date().toISOString()
+            });
+            showToast('Remboursement global enregistré avec succès');
+        } catch (error) { 
+            console.error("Erreur lors du remboursement global:", error); 
+            showToast('Erreur lors du remboursement global', 'error');
+        }
+    }
+
+    function exportToCSV(contactId) {
+        const contact = contacts.find(c => c.id === contactId);
+        if (!contact) return;
+        const contactTransactions = transactions
+            .filter(t => t.contactId === contactId)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        let csvContent = "data:text/csv;charset=utf-8,Date,Description,Catégorie,Montant,Montant Remboursé,Statut\r\n";
+        contactTransactions.forEach(t => {
+            const row = [
+                new Date(t.date).toLocaleDateString('fr-FR'), 
+                `"${t.description.replace(/"/g, '""')}"`, 
+                t.category, 
+                t.amount, 
+                (t.paidAmount || 0), 
+                t.isPaid ? "Remboursé" : "Dû"
+            ].join(',');
+            csvContent += row + "\r\n";
+        });
+        const link = document.createElement("a");
+        link.setAttribute("href", encodeURI(csvContent));
+        link.setAttribute("download", `historique_${contact.name.replace(/ /g,'_')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Export CSV réussi');
+    }
+    
+    async function exportToPDF(contactId) {
+        const contact = contacts.find(c => c.id === contactId);
+        if (!contact) return;
+        
+        const contactTransactions = transactions
+            .filter(t => t.contactId === contactId)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        if (contactTransactions.length === 0) {
+            showToast('Aucune transaction à exporter', 'error');
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // En-tête
+        doc.setFontSize(20);
+        doc.setFont(undefined, 'bold');
+        doc.text('RELEVE DE DETTES', 105, 20, { align: 'center' });
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Date d'edition : ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, 105, 30, { align: 'center' });
+        
+        // Informations du débiteur
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Debiteur', 20, 45);
+        
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'normal');
+        doc.text(contact.name, 20, 52);
+        
+        // Calcul des totaux
+        let totalPrete = 0;
+        let totalRembourse = 0;
+        let totalDu = 0;
+        
+        contactTransactions.forEach(t => {
+            totalPrete += t.amount;
+            totalRembourse += (t.paidAmount || 0);
+            const due = t.amount - (t.paidAmount || 0);
+            if (due > 0) totalDu += due;
+        });
+        
+        // Résumé financier - Encadré
+        doc.setFillColor(240, 240, 240);
+        doc.rect(20, 60, 170, 30, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(20, 60, 170, 30);
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text('RESUME FINANCIER', 25, 68);
+        
+        doc.setFont(undefined, 'normal');
+        doc.text(`Total prete :`, 25, 76);
+        doc.text(`${formatCurrencyForPDF(totalPrete)}`, 80, 76);
+        
+        doc.text(`Total rembourse :`, 25, 82);
+        doc.setTextColor(0, 150, 0);
+        doc.text(`${formatCurrencyForPDF(totalRembourse)}`, 80, 82);
+        doc.setTextColor(0, 0, 0);
+        
+        doc.setFont(undefined, 'bold');
+        doc.text(`TOTAL DU :`, 120, 82);
+        doc.setTextColor(200, 0, 0);
+        doc.setFontSize(12);
+        doc.text(`${formatCurrencyForPDF(totalDu)}`, 160, 82);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        
+        // Tableau des transactions
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(12);
+        doc.text('DETAIL DES TRANSACTIONS', 20, 105);
+        
+        let yPos = 115;
+        
+        // En-têtes du tableau
+        doc.setFillColor(70, 130, 180);
+        doc.rect(20, yPos - 5, 170, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.text('Date', 22, yPos);
+        doc.text('Description', 45, yPos);
+        doc.text('Montant', 110, yPos);
+        doc.text('Remb.', 140, yPos);
+        doc.text('Reste du', 165, yPos);
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFont(undefined, 'normal');
+        yPos += 10;
+        
+        // Lignes du tableau
+        contactTransactions.forEach((t, index) => {
+            if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            const due = t.amount - (t.paidAmount || 0);
+            const isFullyPaid = t.isPaid || due < 0.01;
+            
+            // Alternance de couleur de fond
+            if (index % 2 === 0) {
+                doc.setFillColor(250, 250, 250);
+                doc.rect(20, yPos - 5, 170, 8, 'F');
+            }
+            
+            doc.setFontSize(8);
+            doc.text(new Date(t.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }), 22, yPos);
+            
+            // Limiter la description à 30 caractères
+            const desc = t.description.length > 30 ? t.description.substring(0, 27) + '...' : t.description;
+            doc.text(`${desc} (${t.category})`, 45, yPos);
+            
+            doc.text(formatCurrencyForPDF(t.amount), 110, yPos);
+            
+            if (t.paidAmount && t.paidAmount > 0) {
+                doc.setTextColor(0, 150, 0);
+                doc.text(formatCurrencyForPDF(t.paidAmount), 140, yPos);
+                doc.setTextColor(0, 0, 0);
+            } else {
+                doc.text('-', 140, yPos);
+            }
+            
+            if (isFullyPaid) {
+                doc.setTextColor(0, 150, 0);
+                doc.setFont(undefined, 'bold');
+                doc.text('PAYE', 165, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(0, 0, 0);
+            } else {
+                doc.setTextColor(200, 0, 0);
+                doc.setFont(undefined, 'bold');
+                doc.text(formatCurrencyForPDF(due), 165, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(0, 0, 0);
+            }
+            
+            yPos += 8;
+        });
+        
+        // Ligne de séparation finale
+        doc.setDrawColor(70, 130, 180);
+        doc.setLineWidth(0.5);
+        doc.line(20, yPos, 190, yPos);
+        
+        // Pied de page
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' });
+            doc.text('Document genere par Suivi de Dettes', 105, 295, { align: 'center' });
+        }
+        
+        // Téléchargement
+        const fileName = `releve_${contact.name.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        showToast('PDF genere avec succes');
+    }
+    
+    async function transferTransaction(transactionId, newContactId) {
+        if (!currentUserId || !transactionId || !newContactId) return;
+        const transaction = transactions.find(t => t.id === transactionId);
+        if (!transaction || transaction.contactId === newContactId) return;
+        
+        try {
+            await updateDoc(doc(db, 'users', currentUserId, 'transactions', transactionId), {
+                contactId: newContactId
+            });
+            showToast('Transaction transférée avec succès');
+        } catch (error) {
+            console.error("Erreur lors du transfert:", error);
+            showToast('Erreur lors du transfert', 'error');
+        }
+    }
+    
+    function updateTransferContactDropdown(excludeContactId) {
+        const select = document.getElementById('transfer-to-contact');
+        select.innerHTML = '<option value="">Sélectionner un contact</option>';
+        contacts
+            .filter(c => c.id !== excludeContactId)
+            .sort((a,b) => a.name.localeCompare(b.name))
+            .forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.id;
+                option.textContent = c.name;
+                select.appendChild(option);
+            });
+    }
+    
+    function initSwipeToDelete() {
+        const transactionItems = document.querySelectorAll('.transaction-item');
+        
+        transactionItems.forEach(item => {
+            const content = item.querySelector('.transaction-content');
+            const actions = item.querySelector('.transaction-actions');
+            
+            if (!content || !actions) return;
+            
+            let startX = 0;
+            let currentX = 0;
+            let isDragging = false;
+            
+            content.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                isDragging = true;
+                content.style.transition = 'none';
+            }, { passive: true });
+            
+            content.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                
+                currentX = e.touches[0].clientX;
+                const diff = startX - currentX;
+                
+                // Permettre seulement le swipe vers la gauche
+                if (diff > 0 && diff <= 120) {
+                    content.style.transform = `translateX(-${diff}px)`;
+                }
+            }, { passive: true });
+            
+            content.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                
+                const diff = startX - currentX;
+                content.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                
+                // Si swipe > 60px, afficher les actions
+                if (diff > 60) {
+                    content.style.transform = 'translateX(-120px)';
+                } else {
+                    // Sinon, revenir à la position initiale
+                    content.style.transform = 'translateX(0)';
+                }
+            });
+            
+            // Clic sur les actions
+            actions.querySelectorAll('.swipe-action-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const action = btn.dataset.action;
+                    const transactionId = btn.dataset.id;
+                    
+                    // Fermer le swipe
+                    content.style.transform = 'translateX(0)';
+                    
+                    if (action === 'delete') {
+                        showDeleteConfirmation('transaction', transactionId, 'Supprimer cette transaction ?');
+                    } else if (action === 'edit') {
+                        const t = transactions.find(t => t.id === transactionId);
+                        if(t) {
+                            document.getElementById('transaction-form').reset();
+                            document.getElementById('modal-title').textContent = 'Modifier la transaction';
+                            document.getElementById('transaction-id').value = t.id;
+                            document.getElementById('contact-select').value = t.contactId;
+                            document.getElementById('amount').value = t.amount;
+                            document.getElementById('description').value = t.description;
+                            document.getElementById('date').value = t.date.split('T')[0];
+                            document.getElementById('category').value = t.category;
+                            openModal(transactionModal);
+                        }
+                    }
+                });
+            });
+            
+            // Fermer le swipe si on tape ailleurs
+            document.addEventListener('touchstart', (e) => {
+                if (!item.contains(e.target)) {
+                    content.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    content.style.transform = 'translateX(0)';
+                }
+            }, { passive: true });
+        });
+    }
+
+    // --- Gestion de l'épargne ---
+async function enableSavings(contactId) {
+    if (!currentUserId) return;
+    try {
+        await updateDoc(doc(db, 'users', currentUserId, 'contacts', contactId), {
+            savingsEnabled: true
+        });
+        showToast('Compte d\'épargne activé');
+        showContactDetails(contactId);
+    } catch (error) {
+        console.error("Erreur activation épargne:", error);
+        showToast('Erreur lors de l\'activation', 'error');
+    }
+}
+
+async function disableSavings(contactId) {
+    if (!currentUserId) return;
+    const ops = savingsOperations.filter(op => op.contactId === contactId);
+    const cats = savingsCategories.filter(cat => cat.contactId === contactId);
+    
+    if (ops.length > 0 || cats.length > 0) {
+        if (!confirm('Des catégories et opérations existent. Voulez-vous vraiment désactiver l\'épargne ?')) {
+            return;
+        }
+    }
+    
+    try {
+        await updateDoc(doc(db, 'users', currentUserId, 'contacts', contactId), {
+            savingsEnabled: false
+        });
+        currentTab = 'debts';
+        showContactDetails(contactId);
+        showToast('Compte d\'épargne désactivé');
+    } catch (error) {
+        console.error("Erreur désactivation épargne:", error);
+        showToast('Erreur lors de la désactivation', 'error');
+    }
+}
+
+async function saveSavingsCategory(contactId, categoryName) {
+    if (!currentUserId || !categoryName.trim()) return;
+    const categoriesRef = collection(db, 'users', currentUserId, 'savingsCategories');
+    try {
+        await addDoc(categoriesRef, {
+            contactId: contactId,
+            name: categoryName.trim()
+        });
+        showToast('Catégorie ajoutée');
+    } catch (error) {
+        console.error("Erreur création catégorie:", error);
+        showToast('Erreur lors de la création', 'error');
+    }
+}
+
+async function deleteSavingsCategory(categoryId) {
+    if (!currentUserId) return;
+    
+    // Vérifier s'il y a des opérations dans cette catégorie
+    const ops = savingsOperations.filter(op => op.categoryId === categoryId);
+    if (ops.length > 0) {
+        if (!confirm(`Cette catégorie contient ${ops.length} opération(s). Voulez-vous vraiment la supprimer ? Les opérations seront également supprimées.`)) {
+            return;
+        }
+        // Supprimer toutes les opérations de cette catégorie
+        for (const op of ops) {
+            await deleteDoc(doc(db, 'users', currentUserId, 'savings', op.id));
+        }
+    }
+    
+    try {
+        await deleteDoc(doc(db, 'users', currentUserId, 'savingsCategories', categoryId));
+        showToast('Catégorie supprimée');
+    } catch (error) {
+        console.error("Erreur suppression catégorie:", error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
+
+async function saveSavingsOperation(data) {
+    if (!currentUserId) return;
+    const savingsRef = collection(db, 'users', currentUserId, 'savings');
+    try {
+        await addDoc(savingsRef, {
+            contactId: data.contactId,
+            categoryId: data.categoryId,
+            type: data.type,
+            amount: data.amount,
+            description: data.description,
+            date: data.date
+        });
+        showToast('Opération ajoutée');
+    } catch (error) {
+        console.error("Erreur sauvegarde opération:", error);
+        showToast('Erreur lors de la sauvegarde', 'error');
+    }
+}
+
+async function deleteSavingsOperation(operationId) {
+    if (!currentUserId) return;
+    try {
+        await deleteDoc(doc(db, 'users', currentUserId, 'savings', operationId));
+        showToast('Opération supprimée');
+    } catch (error) {
+        console.error("Erreur suppression opération:", error);
+        showToast('Erreur lors de la suppression', 'error');
+    }
+}
+
+function calculateCategoryBalance(categoryId) {
+    return savingsOperations
+        .filter(op => op.categoryId === categoryId)
+        .reduce((acc, op) => {
+            return op.type === 'deposit' ? acc + op.amount : acc - op.amount;
+        }, 0);
+}
+
+function calculateTotalSavingsBalance(contactId) {
+    return savingsOperations
+        .filter(op => op.contactId === contactId)
+        .reduce((acc, op) => {
+            return op.type === 'deposit' ? acc + op.amount : acc - op.amount;
+        }, 0);
+}
+
+function updateSavingsDisplay(contactId) {
+    const contact = contacts.find(c => c.id === contactId);
+    const enableBtn = document.getElementById('enable-savings-btn');
+    const tabsContainer = document.getElementById('tabs-container');
+    const savingsBalanceDisplay = document.getElementById('savings-balance-display');
+    
+    if (!contact || !contact.savingsEnabled) {
+        savingsBalanceDisplay.classList.add('hidden');
+        tabsContainer.classList.add('hidden');
+        enableBtn.classList.remove('hidden');
+        document.getElementById('debts-view').classList.remove('hidden');
+        document.getElementById('savings-view').classList.add('hidden');
+        return;
+    }
+    
+    const balance = calculateTotalSavingsBalance(contactId);
+    document.getElementById('details-savings-balance').textContent = formatCurrency(balance);
+    savingsBalanceDisplay.classList.remove('hidden');
+    tabsContainer.classList.remove('hidden');
+    enableBtn.classList.add('hidden');
+}
+
+function renderSavingsCategoriesList(contactId) {
+    const categories = savingsCategories.filter(cat => cat.contactId === contactId);
+    const listContainer = document.getElementById('categories-list');
+    const noMessage = document.getElementById('no-categories-message');
+    const totalAmount = document.getElementById('total-savings-amount');
+    
+    listContainer.innerHTML = '';
+    
+    if (categories.length === 0) {
+        noMessage.classList.remove('hidden');
+        listContainer.classList.add('hidden');
+        totalAmount.textContent = '0,00 €';
+        return;
+    }
+    
+    noMessage.classList.add('hidden');
+    listContainer.classList.remove('hidden');
+    
+    let total = 0;
+    
+    categories.forEach(cat => {
+        const balance = calculateCategoryBalance(cat.id);
+        total += balance;
+        
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded-lg shadow border-l-4 border-blue-500 hover:shadow-md transition cursor-pointer';
+        card.dataset.categoryId = cat.id;
+        
+        card.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="font-semibold text-gray-800">${cat.name}</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <p class="font-bold text-lg ${balance >= 0 ? 'text-blue-600' : 'text-red-600'}">
+                        ${formatCurrency(balance)}
+                    </p>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
+                </div>
+            </div>
+        `;
+        
+        card.addEventListener('click', () => {
+            showCategoryDetail(contactId, cat.id);
+        });
+        
+        listContainer.appendChild(card);
+    });
+    
+    totalAmount.textContent = formatCurrency(total);
+}
+
+function showCategoryDetail(contactId, categoryId) {
+    currentSavingsView = 'detail';
+    currentCategoryId = categoryId;
+    
+    document.getElementById('savings-categories-view').classList.add('hidden');
+    document.getElementById('savings-category-detail-view').classList.remove('hidden');
+    
+    renderCategoryDetail(contactId, categoryId);
+}
+
+function renderCategoryDetail(contactId, categoryId) {
+    const category = savingsCategories.find(cat => cat.id === categoryId);
+    if (!category) return;
+    
+    const operations = savingsOperations
+        .filter(op => op.categoryId === categoryId)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    const balance = calculateCategoryBalance(categoryId);
+    
+    document.getElementById('category-detail-name').textContent = category.name;
+    document.getElementById('category-detail-balance').textContent = formatCurrency(balance);
+    
+    const listContainer = document.getElementById('category-operations-list');
+    const noMessage = document.getElementById('no-operations-message');
+    
+    listContainer.innerHTML = '';
+    
+    if (operations.length === 0) {
+        listContainer.classList.add('hidden');
+        noMessage.classList.remove('hidden');
+        return;
+    }
+    
+    listContainer.classList.remove('hidden');
+    noMessage.classList.add('hidden');
+    
+    operations.forEach(op => {
+        const isDeposit = op.type === 'deposit';
+        const card = document.createElement('div');
+        card.className = `bg-white p-3 rounded-lg shadow-sm border-l-4 ${isDeposit ? 'border-green-500' : 'border-orange-500'}`;
+        const formattedDate = new Date(op.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="font-semibold">${op.description}</p>
+                    <p class="text-sm text-gray-500">${formattedDate}</p>
+                </div>
+                <div class="text-right">
+                    <p class="font-bold text-lg ${isDeposit ? 'text-green-600' : 'text-orange-600'}">
+                        ${isDeposit ? '+' : '-'} ${formatCurrency(op.amount)}
+                    </p>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-2">
+                <button data-id="${op.id}" class="delete-operation-btn text-gray-400 hover:text-red-500"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        listContainer.appendChild(card);
+    });
+}
+
+function renderCategoriesManagement(contactId) {
+    const categories = savingsCategories.filter(cat => cat.contactId === contactId);
+    const listContainer = document.getElementById('categories-management-list');
+    
+    listContainer.innerHTML = '';
+    
+    if (categories.length === 0) {
+        listContainer.innerHTML = '<p class="text-center text-gray-500">Aucune catégorie pour le moment</p>';
+        return;
+    }
+    
+    categories.forEach(cat => {
+        const opsCount = savingsOperations.filter(op => op.categoryId === cat.id).length;
+        
+        const item = document.createElement('div');
+        item.className = 'flex justify-between items-center p-3 bg-gray-50 rounded border';
+        
+        item.innerHTML = `
+            <div>
+                <p class="font-semibold">${cat.name}</p>
+                <p class="text-xs text-gray-500">${opsCount} opération(s)</p>
+            </div>
+            <button data-id="${cat.id}" class="delete-category-btn text-red-500 hover:text-red-700">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        
+        listContainer.appendChild(item);
+    });
+}
+
+function updateSavingsCategoryDropdown(contactId) {
+    const categories = savingsCategories.filter(cat => cat.contactId === contactId);
+    const select = document.getElementById('savings-category');
+    
+    select.innerHTML = '<option value="">Sélectionner une catégorie</option>';
+    
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat.id;
+        option.textContent = cat.name;
+        select.appendChild(option);
+    });
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    const contactId = contactDetailsView.dataset.currentContactId;
+    
+    if (tab === 'debts') {
+        document.getElementById('tab-debts').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-debts').classList.remove('text-gray-500');
+        document.getElementById('tab-savings').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-savings').classList.add('text-gray-500');
+        document.getElementById('debts-view').classList.remove('hidden');
+        document.getElementById('savings-view').classList.add('hidden');
+        renderContactDetails(contactId, '');
+    } else {
+        document.getElementById('tab-savings').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-savings').classList.remove('text-gray-500');
+        document.getElementById('tab-debts').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-debts').classList.add('text-gray-500');
+        document.getElementById('debts-view').classList.add('hidden');
+        document.getElementById('savings-view').classList.remove('hidden');
+        
+        // Toujours revenir à la vue catégories quand on switch vers l'onglet épargne
+        currentSavingsView = 'categories';
+        document.getElementById('savings-categories-view').classList.remove('hidden');
+        document.getElementById('savings-category-detail-view').classList.add('hidden');
+        
+        renderSavingsCategoriesList(contactId);
+        updateSavingsCategoryDropdown(contactId);
+    }
+}
+    
+    // --- Event Listeners ---
+    document.getElementById('back-to-dashboard-btn').addEventListener('click', showDashboard);
+    
+    addTransactionBtn.addEventListener('click', () => {
+        document.getElementById('transaction-form').reset();
+        document.getElementById('transaction-id').value = '';
+        document.getElementById('modal-title').textContent = 'Nouveau Prêt';
+        document.getElementById('date').valueAsDate = new Date();
+        openModal(transactionModal);
+    });
+    
+    document.getElementById('manage-contacts-btn').addEventListener('click', () => openModal(contactsModal));
+    document.getElementById('cancel-transaction-btn').addEventListener('click', () => closeModal(transactionModal));
+    
+    document.getElementById('transaction-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveTransaction({
+            id: document.getElementById('transaction-id').value,
+            contactId: document.getElementById('contact-select').value,
+            amount: parseFloat(document.getElementById('amount').value),
+            description: document.getElementById('description').value,
+            category: document.getElementById('category').value,
+            date: document.getElementById('date').valueAsDate.toISOString()
+        });
+        closeModal(transactionModal);
+    });
+    
+    document.getElementById('close-contacts-modal-btn').addEventListener('click', () => closeModal(contactsModal));
+    
+    document.getElementById('add-contact-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('new-contact-name');
+        addContact(input.value);
+        input.value = '';
+    });
+    
+    document.getElementById('all-contacts-list').addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-contact-btn');
+        if (deleteBtn) {
+            const contact = contacts.find(c => c.id === deleteBtn.dataset.id);
+            showDeleteConfirmation('contact', deleteBtn.dataset.id, `Supprimer ${contact.name} et toutes ses transactions ?`);
+        }
+    });
+    
+    document.getElementById('cancel-repayment-btn').addEventListener('click', () => closeModal(repaymentModal));
+    
+    document.getElementById('repayment-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const transactionId = document.getElementById('repayment-transaction-id').value;
+        const amount = parseFloat(document.getElementById('repayment-amount').value);
+        const repaymentDate = document.getElementById('repayment-date').valueAsDate.toISOString();
+        
+        if (transactionId) {
+            saveRepayment(transactionId, amount, repaymentDate);
+        } else {
+            saveGlobalRepayment(contactDetailsView.dataset.currentContactId, amount, repaymentDate);
+        }
+        closeModal(repaymentModal);
+    });
+    
+    document.getElementById('transaction-history').addEventListener('click', (e) => {
+        const payBtn = e.target.closest('.pay-btn');
+        const deleteBtn = e.target.closest('.delete-transaction-btn');
+        const editBtn = e.target.closest('.edit-transaction-btn');
+        const transferBtn = e.target.closest('.transfer-btn');
+        
+        if (payBtn) {
+            const transaction = transactions.find(t => t.id === payBtn.dataset.id);
+            if (transaction) {
+                const due = transaction.amount - (transaction.paidAmount || 0);
+                document.getElementById('repayment-form').reset();
+                document.getElementById('repayment-transaction-id').value = transaction.id;
+                document.getElementById('repayment-due-amount').textContent = formatCurrency(due);
+                document.getElementById('repayment-amount').value = due.toFixed(2);
+                document.getElementById('repayment-amount').max = due.toFixed(2);
+                document.getElementById('repayment-date').valueAsDate = new Date();
+                document.getElementById('repayment-context-text').classList.remove('hidden');
+                repaymentModal.querySelector('h2').textContent = 'Remboursement';
+                openModal(repaymentModal);
+            }
+        }
+        
+        if (editBtn) {
+            const t = transactions.find(t => t.id === editBtn.dataset.id);
+            if(t) {
+                document.getElementById('transaction-form').reset();
+                document.getElementById('modal-title').textContent = 'Modifier la transaction';
+                document.getElementById('transaction-id').value = t.id;
+                document.getElementById('contact-select').value = t.contactId;
+                document.getElementById('amount').value = t.amount;
+                document.getElementById('description').value = t.description;
+                document.getElementById('date').value = t.date.split('T')[0];
+                document.getElementById('category').value = t.category;
+                openModal(transactionModal);
+            }
+        }
+        
+        if (deleteBtn) {
+            showDeleteConfirmation('transaction', deleteBtn.dataset.id, 'Supprimer cette transaction ?');
+        }
+        
+        if (transferBtn) {
+            const transaction = transactions.find(t => t.id === transferBtn.dataset.id);
+            if (transaction) {
+                const fromContact = contacts.find(c => c.id === transaction.contactId);
+                document.getElementById('transfer-form').reset();
+                document.getElementById('transfer-transaction-id').value = transaction.id;
+                document.getElementById('transfer-info').textContent = 
+                    `Transaction: ${transaction.description} (${formatCurrency(transaction.amount)}) de ${fromContact?.name || 'Contact inconnu'}`;
+                updateTransferContactDropdown(transaction.contactId);
+                openModal(transferModal);
+            }
+        }
+    });
+    
+    function showDeleteConfirmation(type, id, message) {
+        document.getElementById('delete-target-type').value = type;
+        document.getElementById('delete-target-id').value = id;
+        document.getElementById('delete-confirm-message').textContent = message;
+        openModal(deleteConfirmModal);
+    }
+    
+    document.getElementById('cancel-delete-btn').addEventListener('click', () => closeModal(deleteConfirmModal));
+    
+    document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
+        const type = document.getElementById('delete-target-type').value;
+        const id = document.getElementById('delete-target-id').value;
+        if (type === 'contact') await deleteContact(id);
+        else if (type === 'transaction') await deleteTransaction(id);
+        closeModal(deleteConfirmModal);
+    });
+    
+    document.getElementById('add-global-repayment-btn').addEventListener('click', () => {
+        const contactId = contactDetailsView.dataset.currentContactId;
+        const contact = contacts.find(c => c.id === contactId);
+        if (!contact) return;
+        const totalDue = transactions
+            .filter(t => t.contactId === contactId && !t.isPaid)
+            .reduce((acc, t) => acc + (t.amount - (t.paidAmount || 0)), 0);
+        document.getElementById('repayment-form').reset();
+        document.getElementById('repayment-transaction-id').value = '';
+        document.getElementById('repayment-context-text').classList.add('hidden');
+        repaymentModal.querySelector('h2').textContent = `Encaisser pour ${contact.name}`;
+        document.getElementById('repayment-amount').value = totalDue.toFixed(2);
+        document.getElementById('repayment-amount').max = totalDue.toFixed(2);
+        document.getElementById('repayment-date').valueAsDate = new Date();
+        openModal(repaymentModal);
+    });
+    
+    document.getElementById('export-csv-btn').addEventListener('click', () => {
+        exportToCSV(contactDetailsView.dataset.currentContactId);
+    });
+    
+    document.getElementById('export-pdf-btn').addEventListener('click', () => {
+        exportToPDF(contactDetailsView.dataset.currentContactId);
+    });
+    
+    // Recherche en temps réel
+    document.getElementById('transaction-search').addEventListener('input', (e) => {
+        const contactId = contactDetailsView.dataset.currentContactId;
+        if (contactId) {
+            renderContactDetails(contactId, e.target.value);
+        }
+    });
+    
+    document.getElementById('cancel-transfer-btn').addEventListener('click', () => closeModal(transferModal));
+    
+    document.getElementById('transfer-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const transactionId = document.getElementById('transfer-transaction-id').value;
+        const newContactId = document.getElementById('transfer-to-contact').value;
+        transferTransaction(transactionId, newContactId);
+        closeModal(transferModal);
+    });
+
+// Event listeners pour l'épargne
+document.getElementById('enable-savings-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    if (contactId) {
+        enableSavings(contactId);
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'tab-debts' || e.target.closest('#tab-debts')) {
+        switchTab('debts');
+    } else if (e.target.id === 'tab-savings' || e.target.closest('#tab-savings')) {
+        switchTab('savings');
+    }
+});
+
+document.getElementById('disable-savings-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    if (contactId) {
+        disableSavings(contactId);
+    }
+});
+
+document.getElementById('manage-categories-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    renderCategoriesManagement(contactId);
+    openModal(categoriesModal);
+});
+
+document.getElementById('close-categories-modal-btn').addEventListener('click', () => {
+    closeModal(categoriesModal);
+});
+
+document.getElementById('add-category-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    const categoryName = document.getElementById('new-category-name').value;
+    if (categoryName.trim()) {
+        saveSavingsCategory(contactId, categoryName);
+        document.getElementById('new-category-name').value = '';
+    } else {
+        showToast('Veuillez entrer un nom de catégorie', 'error');
+    }
+});
+
+document.getElementById('categories-management-list').addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.delete-category-btn');
+    if (deleteBtn) {
+        deleteSavingsCategory(deleteBtn.dataset.id);
+    }
+});
+
+document.getElementById('add-savings-operation-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    const categories = savingsCategories.filter(cat => cat.contactId === contactId);
+    
+    if (categories.length === 0) {
+        showToast('Créez d\'abord une catégorie', 'error');
+        return;
+    }
+    
+    document.getElementById('savings-form').reset();
+    document.getElementById('savings-operation-id').value = '';
+    document.getElementById('savings-operation-type').value = 'deposit';
+    document.getElementById('savings-modal-title').textContent = 'Ajouter une opération';
+    document.getElementById('savings-date').valueAsDate = new Date();
+    updateSavingsCategoryDropdown(contactId);
+    openModal(savingsModal);
+});
+
+document.getElementById('back-to-categories-btn').addEventListener('click', () => {
+    const contactId = contactDetailsView.dataset.currentContactId;
+    currentSavingsView = 'categories';
+    document.getElementById('savings-categories-view').classList.remove('hidden');
+    document.getElementById('savings-category-detail-view').classList.add('hidden');
+    renderSavingsCategoriesList(contactId);
+});
+
+document.getElementById('cancel-savings-btn').addEventListener('click', () => closeModal(savingsModal));
+
+document.getElementById('savings-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const contactId = contactDetailsView.dataset.currentContactId;
+    saveSavingsOperation({
+        contactId: contactId,
+        categoryId: document.getElementById('savings-category').value,
+        type: document.getElementById('savings-operation-type').value,
+        amount: parseFloat(document.getElementById('savings-amount').value),
+        description: document.getElementById('savings-description').value,
+        date: document.getElementById('savings-date').valueAsDate.toISOString()
+    });
+    closeModal(savingsModal);
+});
+
+document.getElementById('category-operations-list').addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.delete-operation-btn');
+    if (deleteBtn) {
+        if (confirm('Supprimer cette opération ?')) {
+            deleteSavingsOperation(deleteBtn.dataset.id);
+        }
+    }
+});
+    
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
