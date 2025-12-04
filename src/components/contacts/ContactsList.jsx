@@ -65,6 +65,7 @@ function ContactsList({ contacts, transactions, userId }) {
         <ContactDetailsView
           contact={selectedContact}
           transactions={transactions}
+          contacts={contacts}
           onBack={() => setSelectedContact(null)}
           onEditTransaction={setEditingTransaction}
         />

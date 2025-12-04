@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import { deleteTransaction, addRepayment } from '../../services/transactionsService';
+import { deleteTransaction, addRepayment, transferTransaction } from '../../services/transactionsService';
+import { updateContact } from '../../services/contactsService';
 import { showToast } from '../../utils/toast';
+import { exportContactTransactionsToPDF } from '../../utils/pdfExport';
+import { exportContactTransactionsToCSV } from '../../utils/csvExport';
 import AddRepaymentModal from '../modals/AddRepaymentModal';
+import EditContactModal from '../modals/EditContactModal';
+import TransferTransactionModal from '../modals/TransferTransactionModal';
 
-function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }) {
+function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTransaction }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [repayingTransaction, setRepayingTransaction] = useState(null);
+  const [showEditContact, setShowEditContact] = useState(false);
+  const [transferringTransaction, setTransferringTransaction] = useState(null);
 
   const contactTransactions = transactions
     .filter(t => t.contactId === contact.id)
@@ -37,6 +44,44 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
     }
   };
 
+  const handleEditContact = async (contactId, updates) => {
+    try {
+      await updateContact(contactId, updates);
+      showToast('Contact modifié', 'success');
+      setShowEditContact(false);
+    } catch (error) {
+      showToast('Erreur lors de la modification', 'error');
+    }
+  };
+
+  const handleTransferTransaction = async (transactionId, newContactId) => {
+    try {
+      await transferTransaction(transactionId, newContactId);
+      showToast('Transaction transférée', 'success');
+      setTransferringTransaction(null);
+    } catch (error) {
+      showToast('Erreur lors du transfert', 'error');
+    }
+  };
+
+  const handleExportPDF = () => {
+    try {
+      exportContactTransactionsToPDF(contact, contactTransactions);
+      showToast('PDF exporté avec succès', 'success');
+    } catch (error) {
+      showToast('Erreur lors de l\'export PDF', 'error');
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      exportContactTransactionsToCSV(contact, contactTransactions);
+      showToast('CSV exporté avec succès', 'success');
+    } catch (error) {
+      showToast('Erreur lors de l\'export CSV', 'error');
+    }
+  };
+
   const totalOwed = contactTransactions
     .filter(t => !t.category || t.category === 'prêté' || t.category !== 'emprunté')
     .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
@@ -62,9 +107,20 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
         </button>
 
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {contact.name}
-          </h2>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {contact.name}
+            </h2>
+            <button
+              onClick={() => setShowEditContact(true)}
+              className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+              title="Modifier le contact"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+          </div>
           <p className={`text-3xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {formatCurrency(Math.abs(balance))}
           </p>
@@ -93,6 +149,22 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
+      </div>
+
+      {/* Export Buttons */}
+      <div className="flex space-x-2 mb-4">
+        <button
+          onClick={handleExportPDF}
+          className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition font-medium text-sm"
+        >
+          📄 Exporter en PDF
+        </button>
+        <button
+          onClick={handleExportCSV}
+          className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition font-medium text-sm"
+        >
+          📊 Exporter en CSV
+        </button>
       </div>
 
       {/* Transactions List */}
@@ -165,6 +237,13 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
                   >
                     ✏️ Modifier
                   </button>
+                  <button
+                    onClick={() => setTransferringTransaction(transaction)}
+                    className="flex-1 px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900 text-purple-600 dark:text-purple-200 rounded hover:bg-purple-100 dark:hover:bg-purple-800 transition"
+                    title="Transférer vers un autre contact"
+                  >
+                    🔄 Transférer
+                  </button>
                   {!isPaid && (
                     <button
                       onClick={() => setRepayingTransaction(transaction)}
@@ -192,6 +271,26 @@ function ContactDetailsView({ contact, transactions, onBack, onEditTransaction }
           transaction={repayingTransaction}
           onClose={() => setRepayingTransaction(null)}
           onAdd={handleAddRepayment}
+        />
+      )}
+
+      {/* Edit Contact Modal */}
+      {showEditContact && (
+        <EditContactModal
+          contact={contact}
+          onClose={() => setShowEditContact(false)}
+          onSave={handleEditContact}
+        />
+      )}
+
+      {/* Transfer Transaction Modal */}
+      {transferringTransaction && (
+        <TransferTransactionModal
+          transaction={transferringTransaction}
+          contacts={contacts}
+          currentContactId={contact.id}
+          onClose={() => setTransferringTransaction(null)}
+          onTransfer={handleTransferTransaction}
         />
       )}
     </div>
