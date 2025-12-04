@@ -50,6 +50,17 @@ function Dashboard({
     };
   });
 
+  const categoriesWithBalances = savingsCategories.map(category => {
+    const categoryOps = savings.filter(op => op.categoryId === category.id);
+    const balance = categoryOps.reduce((sum, op) => sum + (op.amount || 0), 0);
+
+    return {
+      ...category,
+      balance,
+      operationCount: categoryOps.length
+    };
+  });
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto">
@@ -72,7 +83,7 @@ function Dashboard({
             />
           ) : (
             <SavingsView
-              categories={savingsCategories}
+              categories={categoriesWithBalances}
               operations={savings}
               userId={user.uid}
             />
