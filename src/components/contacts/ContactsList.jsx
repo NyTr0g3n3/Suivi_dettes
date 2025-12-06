@@ -85,47 +85,47 @@ function ContactsList({ contacts, transactions, userId, allSavingsOperations }) 
 
   return (
     <div>
-      {/* Summary */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-4">
+      {/* Summary - iOS 26 Style */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mb-4">
         <div className="text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Balance totale</p>
-          <p className={`text-3xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(totalBalance)}
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Balance totale</p>
+          <p className={`text-4xl font-semibold ${totalBalance >= 0 ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
+            {formatCurrency(Math.abs(totalBalance))}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            {contacts.length} contact{contacts.length !== 1 ? 's' : ''}
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+            {contacts.length} compte{contacts.length !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex space-x-2 mb-4">
+      {/* Action Buttons - iOS 26 Style */}
+      <div className="flex gap-3 mb-4">
         <button
           onClick={() => setShowAddContact(true)}
-          className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium"
+          className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3.5 rounded-2xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
         >
-          ➕ Ajouter un contact
+          Ajouter un compte
         </button>
         <button
           onClick={() => setShowAddTransaction(true)}
-          className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-medium"
+          className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3.5 rounded-2xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={contacts.length === 0}
         >
-          💰 Nouvelle transaction
+          Nouvelle transaction
         </button>
       </div>
 
       {/* Contacts List */}
       {contacts.length === 0 ? (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="text-6xl mb-4">📝</div>
-          <p className="text-gray-600 dark:text-gray-400">Aucun contact pour le moment</p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-            Ajoutez un contact pour commencer
+        <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+          <div className="text-6xl mb-4 opacity-30">📝</div>
+          <p className="text-gray-600 dark:text-gray-400 mb-2">Aucun compte pour le moment</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Ajoutez un compte pour commencer
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {contacts
             .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance))
             .map(contact => (
