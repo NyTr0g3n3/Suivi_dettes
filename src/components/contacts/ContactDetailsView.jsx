@@ -14,6 +14,7 @@ import TransferTransactionModal from '../modals/TransferTransactionModal';
 import SavingsCategoryDetails from '../savings/SavingsCategoryDetails';
 import AddSavingsOperationModal from '../modals/AddSavingsOperationModal';
 import EditSavingsOperationModal from '../modals/EditSavingsOperationModal';
+import SwipeableTransactionCard from '../transactions/SwipeableTransactionCard';
 
 function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTransaction, userId, allSavingsOperations }) {
   const [currentTab, setCurrentTab] = useState('loans'); // 'loans' or 'savings'
@@ -441,7 +442,7 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
             </div>
           )}
 
-          {/* Transactions List - iOS 26 Style */}
+          {/* Transactions List - Swipeable Cards */}
           {contactTransactions.length === 0 ? (
             <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
               <div className="text-6xl mb-4 opacity-30">📝</div>
@@ -451,102 +452,16 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
             </div>
           ) : (
             <div className="space-y-2">
-              {contactTransactions.map((transaction, index) => {
-                const remaining = transaction.amount - (transaction.paidAmount || 0);
-                const isPaid = remaining === 0;
-                const isDebt = !transaction.category || transaction.category === 'prêté' || transaction.category !== 'emprunté';
-
-                return (
-                  <div
-                    key={transaction.id}
-                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden"
-                  >
-                    <div className="p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900 dark:text-gray-100 text-base mb-1">
-                            {transaction.description}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {formatDate(transaction.date)}
-                            </p>
-                            {transaction.category && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                                {transaction.category === 'emprunté' ? 'Emprunté' : 'Prêté'}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="text-right ml-4">
-                          <p className={`text-xl font-semibold ${
-                            isPaid
-                              ? 'text-gray-400 dark:text-gray-500 line-through'
-                              : isDebt
-                              ? 'text-green-600 dark:text-green-500'
-                              : 'text-red-600 dark:text-red-500'
-                          }`}>
-                            {formatCurrency(transaction.amount)}
-                          </p>
-                          {!isPaid && transaction.paidAmount > 0 && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Reste: {formatCurrency(remaining)}
-                            </p>
-                          )}
-                          {isPaid && (
-                            <p className="text-xs text-green-600 dark:text-green-500 mt-1">
-                              ✓ Payé
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action Buttons - iOS 26 Style */}
-                      <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
-                        <button
-                          onClick={() => onEditTransaction(transaction)}
-                          className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium flex items-center justify-center gap-1.5"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                          Modifier
-                        </button>
-                        <button
-                          onClick={() => setTransferringTransaction(transaction)}
-                          className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium flex items-center justify-center gap-1.5"
-                          title="Transférer vers un autre contact"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                          </svg>
-                          Transférer
-                        </button>
-                        {!isPaid && (
-                          <button
-                            onClick={() => setRepayingTransaction(transaction)}
-                            className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-1.5"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Payer
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteTransaction(transaction.id)}
-                          className="py-2 px-3 bg-gray-100 dark:bg-gray-700 text-red-600 dark:text-red-500 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {contactTransactions.map((transaction) => (
+                <SwipeableTransactionCard
+                  key={transaction.id}
+                  transaction={transaction}
+                  onDelete={handleDeleteTransaction}
+                  onPay={setRepayingTransaction}
+                  onEdit={onEditTransaction}
+                  onTransfer={setTransferringTransaction}
+                />
+              ))}
             </div>
           )}
         </>
