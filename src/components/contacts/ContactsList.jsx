@@ -109,9 +109,10 @@ function ContactsList({ contacts, transactions, userId, allSavingsOperations }) 
           </svg>
           Ajouter un compte
         </button>
+        {/* Desktop only - hidden on mobile */}
         <button
           onClick={() => setShowAddTransaction(true)}
-          className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3.5 rounded-2xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="hidden md:flex flex-1 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 py-3.5 rounded-2xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed items-center justify-center gap-2"
           disabled={contacts.length === 0}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,6 +121,18 @@ function ContactsList({ contacts, transactions, userId, allSavingsOperations }) 
           Nouvelle transaction
         </button>
       </div>
+
+      {/* Floating Action Button (Mobile only) */}
+      <button
+        onClick={() => setShowAddTransaction(true)}
+        disabled={contacts.length === 0}
+        className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center z-50"
+        aria-label="Nouvelle transaction"
+      >
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
 
       {/* Contacts List */}
       {contacts.length === 0 ? (
