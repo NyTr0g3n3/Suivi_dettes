@@ -147,11 +147,9 @@ function SwipeableTransactionCard({
                   {formatCurrency(transaction.amount)}
                 </p>
                 {!isPaid && transaction.paidAmount > 0 && (
-                  <div className="mt-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/30 rounded">
-                    <p className="text-sm font-medium text-orange-700 dark:text-orange-400">
-                      Reste: {formatCurrency(remaining)}
-                    </p>
-                  </div>
+                  <p className="text-xs font-medium text-orange-600 dark:text-orange-400 mt-0.5">
+                    Reste: {formatCurrency(remaining)}
+                  </p>
                 )}
                 {isPaid && (
                   <p className="text-xs text-green-600 dark:text-green-500 mt-0.5">
