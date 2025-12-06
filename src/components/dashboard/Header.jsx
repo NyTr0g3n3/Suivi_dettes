@@ -15,7 +15,7 @@ function Header({ user, isDarkMode, toggleDarkMode, onSignOut }) {
             <button
               onClick={toggleDarkMode}
               className="text-gray-600 dark:text-gray-300 hover:text-yellow-500 transition"
-              title="Mode sombre"
+              title={isDarkMode ? "Mode clair" : "Mode sombre"}
             >
               {isDarkMode ? (
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
