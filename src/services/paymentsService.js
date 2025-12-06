@@ -49,24 +49,27 @@ export const subscribeToAllPayments = (userId, callback) => {
  */
 export const processPayment = async (userId, contactId, paymentAmount) => {
   try {
-    // Get all unpaid transactions for this contact, sorted by date (oldest first)
+    // Get all transactions for this contact, sorted by date (oldest first)
     const transactionsQuery = query(
       collection(db, 'transactions'),
       where('userId', '==', userId),
       where('contactId', '==', contactId),
-      where('type', '==', 'debt'),
       orderBy('date', 'asc')
     );
 
     const transactionsSnapshot = await getDocs(transactionsQuery);
 
-    // Filter to only truly unpaid debts (where paidAmount < amount)
+    // Filter to only unpaid debts (prêté or no category, where paidAmount < amount)
     const unpaidDebts = transactionsSnapshot.docs
       .map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
-      .filter(debt => (debt.paidAmount || 0) < debt.amount);
+      .filter(debt => {
+        const isDebt = !debt.category || debt.category === 'prêté' || debt.category !== 'emprunté';
+        const hasBalance = (debt.paidAmount || 0) < debt.amount;
+        return isDebt && hasBalance;
+      });
 
     if (unpaidDebts.length === 0) {
       throw new Error('Aucune dette à rembourser');

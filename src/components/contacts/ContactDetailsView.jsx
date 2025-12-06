@@ -204,9 +204,14 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
   const totalSavingsBalance = categoriesWithBalances.reduce((sum, c) => sum + (c.balance || 0), 0);
   const hasSavings = savingsCategories.length > 0;
 
-  // Calculate unpaid debts for payment modal
+  // Calculate unpaid debts for payment modal (what the contact owes)
   const unpaidDebts = contactTransactions
-    .filter(t => t.type === 'debt' && (t.paidAmount || 0) < t.amount)
+    .filter(t => {
+      // Only debts (prêté or no category) that are not fully paid
+      const isDebt = !t.category || t.category === 'prêté' || t.category !== 'emprunté';
+      const hasBalance = (t.paidAmount || 0) < t.amount;
+      return isDebt && hasBalance;
+    })
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // If viewing category details
