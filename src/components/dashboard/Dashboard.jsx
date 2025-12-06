@@ -1,9 +1,7 @@
-import { useState } from 'react';
 import { signOut } from '../../services/authService';
 import { showToast } from '../../utils/toast';
 import Header from './Header';
 import ContactsList from '../contacts/ContactsList';
-import SavingsView from '../savings/SavingsView';
 
 function Dashboard({
   user,
@@ -11,12 +9,8 @@ function Dashboard({
   toggleDarkMode,
   contacts,
   transactions,
-  savingsCategories,
   savings
 }) {
-  const [currentView, setCurrentView] = useState('debts'); // 'debts' or 'savings'
-  const [selectedContact, setSelectedContact] = useState(null);
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -29,8 +23,6 @@ function Dashboard({
   const contactsWithBalances = contacts.map(contact => {
     const contactTransactions = transactions.filter(t => t.contactId === contact.id);
 
-    // Pour l'ancienne structure : toutes les transactions sont des prêts
-    // Pour la nouvelle structure : on différencie prêté/emprunté
     const totalOwed = contactTransactions
       .filter(t => !t.category || t.category === 'prêté' || t.category !== 'emprunté')
       .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
@@ -50,21 +42,6 @@ function Dashboard({
     };
   });
 
-  const categoriesWithBalances = savingsCategories.map(category => {
-    const categoryOps = savings.filter(op => op.categoryId === category.id);
-    const balance = categoryOps.reduce((sum, op) => {
-      const amount = op.amount || 0;
-      // Les dépôts augmentent le solde, les retraits le diminuent
-      return op.type === 'withdrawal' ? sum - amount : sum + amount;
-    }, 0);
-
-    return {
-      ...category,
-      balance,
-      operationCount: categoryOps.length
-    };
-  });
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto">
@@ -73,25 +50,15 @@ function Dashboard({
           isDarkMode={isDarkMode}
           toggleDarkMode={toggleDarkMode}
           onSignOut={handleSignOut}
-          currentView={currentView}
-          onViewChange={setCurrentView}
         />
 
         <main className="p-4">
-          {currentView === 'debts' ? (
-            <ContactsList
-              contacts={contactsWithBalances}
-              transactions={transactions}
-              userId={user.uid}
-              onSelectContact={setSelectedContact}
-            />
-          ) : (
-            <SavingsView
-              categories={categoriesWithBalances}
-              operations={savings}
-              userId={user.uid}
-            />
-          )}
+          <ContactsList
+            contacts={contactsWithBalances}
+            transactions={transactions}
+            userId={user.uid}
+            allSavingsOperations={savings}
+          />
         </main>
       </div>
     </div>

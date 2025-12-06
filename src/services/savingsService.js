@@ -17,10 +17,28 @@ export const subscribeToCategories = (userId, callback) => {
   });
 };
 
-export const addCategory = async (userId, name) => {
+// Get categories for a specific contact
+export const subscribeToCategoriesByContact = (userId, contactId, callback) => {
+  const q = query(
+    collection(db, 'savingsCategories'),
+    where('userId', '==', userId),
+    where('contactId', '==', contactId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const categories = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    callback(categories);
+  });
+};
+
+export const addCategory = async (userId, contactId, name) => {
   try {
     const docRef = await addDoc(collection(db, 'savingsCategories'), {
       userId,
+      contactId,
       name,
       balance: 0,
       createdAt: new Date().toISOString()
@@ -28,6 +46,22 @@ export const addCategory = async (userId, name) => {
     return docRef.id;
   } catch (error) {
     console.error("Error adding category:", error);
+    throw error;
+  }
+};
+
+// Check if a contact has savings enabled
+export const checkContactHasSavings = async (userId, contactId) => {
+  try {
+    const q = query(
+      collection(db, 'savingsCategories'),
+      where('userId', '==', userId),
+      where('contactId', '==', contactId)
+    );
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+  } catch (error) {
+    console.error("Error checking contact savings:", error);
     throw error;
   }
 };

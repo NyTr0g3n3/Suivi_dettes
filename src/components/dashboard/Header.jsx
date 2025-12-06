@@ -1,11 +1,11 @@
-function Header({ user, isDarkMode, toggleDarkMode, onSignOut, currentView, onViewChange }) {
+function Header({ user, isDarkMode, toggleDarkMode, onSignOut }) {
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
       <div className="p-4">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {currentView === 'debts' ? 'Mes Prêts' : 'Mon Épargne'}
+              Mes Comptes
             </h1>
             <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
               {user.email}
@@ -37,30 +37,6 @@ function Header({ user, isDarkMode, toggleDarkMode, onSignOut, currentView, onVi
               </svg>
             </button>
           </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex space-x-2 border-b border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => onViewChange('debts')}
-            className={`px-4 py-2 font-medium transition ${
-              currentView === 'debts'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
-          >
-            💸 Prêts & Dettes
-          </button>
-          <button
-            onClick={() => onViewChange('savings')}
-            className={`px-4 py-2 font-medium transition ${
-              currentView === 'savings'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
-          >
-            🏦 Épargne
-          </button>
         </div>
       </div>
     </header>

@@ -9,7 +9,7 @@ import AddContactModal from '../modals/AddContactModal';
 import AddTransactionModal from '../modals/AddTransactionModal';
 import EditTransactionModal from '../modals/EditTransactionModal';
 
-function ContactsList({ contacts, transactions, userId }) {
+function ContactsList({ contacts, transactions, userId, allSavingsOperations }) {
   const [showAddContact, setShowAddContact] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
@@ -66,6 +66,8 @@ function ContactsList({ contacts, transactions, userId }) {
           contact={selectedContact}
           transactions={transactions}
           contacts={contacts}
+          userId={userId}
+          allSavingsOperations={allSavingsOperations || []}
           onBack={() => setSelectedContact(null)}
           onEditTransaction={setEditingTransaction}
         />
