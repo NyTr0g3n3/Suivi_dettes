@@ -213,75 +213,75 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
 
   return (
     <div>
-      {/* Header with Back Button */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
+      {/* Header with Back Button - iOS 26 Style */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 mb-4">
         <button
           onClick={onBack}
-          className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 mb-3"
+          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-4 transition-colors"
         >
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Retour
+          <span className="text-base">Retour</span>
         </button>
 
         <div className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <h2 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
               {contact.name}
             </h2>
             <button
               onClick={() => setShowEditContact(true)}
-              className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+              className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               title="Modifier le contact"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
             </button>
           </div>
           {currentTab === 'loans' ? (
             <>
-              <p className={`text-3xl font-bold ${balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-4xl font-semibold ${balance >= 0 ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
                 {formatCurrency(Math.abs(balance))}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 {balance >= 0 ? 'vous doit' : 'vous devez'}
               </p>
             </>
           ) : (
             <>
-              <p className="text-3xl font-bold text-blue-600">
+              <p className="text-4xl font-semibold text-gray-900 dark:text-gray-100">
                 {formatCurrency(totalSavingsBalance)}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 Épargne totale
               </p>
             </>
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex space-x-2 border-b border-gray-200 dark:border-gray-700 mt-4">
+        {/* Tabs - iOS 26 Style */}
+        <div className="flex gap-2 mt-6">
           <button
             onClick={() => setCurrentTab('loans')}
-            className={`px-4 py-2 font-medium transition ${
+            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all ${
               currentTab === 'loans'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
             }`}
           >
-            💸 Prêts
+            Prêts
           </button>
           <button
             onClick={() => setCurrentTab('savings')}
-            className={`px-4 py-2 font-medium transition ${
+            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all ${
               currentTab === 'savings'
-                ? 'text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
             }`}
           >
-            🏦 Épargne {hasSavings && `(${savingsCategories.length})`}
+            Épargne {hasSavings && `(${savingsCategories.length})`}
           </button>
         </div>
       </div>
@@ -289,15 +289,15 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
       {/* Loans Tab Content */}
       {currentTab === 'loans' && (
         <>
-          {/* Search Bar */}
-          <div className="mb-4">
-            <div className="relative">
+          {/* Search and Export - iOS 26 Style */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 mb-4">
+            <div className="relative mb-3">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher une transaction..."
-                className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-4 py-2.5 pl-10 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
               />
               <svg
                 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -308,35 +308,35 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
+
+            {/* Export Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportPDF}
+                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-sm"
+              >
+                Exporter PDF
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-sm"
+              >
+                Exporter CSV
+              </button>
+            </div>
           </div>
 
-          {/* Export Buttons */}
-          <div className="flex space-x-2 mb-4">
-            <button
-              onClick={handleExportPDF}
-              className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition font-medium text-sm"
-            >
-              📄 Exporter en PDF
-            </button>
-            <button
-              onClick={handleExportCSV}
-              className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition font-medium text-sm"
-            >
-              📊 Exporter en CSV
-            </button>
-          </div>
-
-          {/* Transactions List */}
+          {/* Transactions List - iOS 26 Style */}
           {contactTransactions.length === 0 ? (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-              <div className="text-6xl mb-4">📝</div>
-              <p className="text-gray-600 dark:text-gray-400">
+            <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+              <div className="text-6xl mb-4 opacity-30">📝</div>
+              <p className="text-gray-500 dark:text-gray-400">
                 {searchQuery ? 'Aucune transaction trouvée' : 'Aucune transaction'}
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {contactTransactions.map(transaction => {
+            <div className="space-y-2">
+              {contactTransactions.map((transaction, index) => {
                 const remaining = transaction.amount - (transaction.paidAmount || 0);
                 const isPaid = remaining === 0;
                 const isDebt = !transaction.category || transaction.category === 'prêté' || transaction.category !== 'emprunté';
@@ -344,79 +344,81 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
                 return (
                   <div
                     key={transaction.id}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-4"
+                    className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">
-                          {transaction.description}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {formatDate(transaction.date)}
-                        </p>
-                        {transaction.category && (
-                          <span className={`inline-block px-2 py-1 text-xs rounded mt-1 ${
-                            transaction.category === 'emprunté'
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                              : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    <div className="p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100 text-base mb-1">
+                            {transaction.description}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {formatDate(transaction.date)}
+                            </p>
+                            {transaction.category && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                                {transaction.category === 'emprunté' ? 'Emprunté' : 'Prêté'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right ml-4">
+                          <p className={`text-xl font-semibold ${
+                            isPaid
+                              ? 'text-gray-400 dark:text-gray-500 line-through'
+                              : isDebt
+                              ? 'text-green-600 dark:text-green-500'
+                              : 'text-red-600 dark:text-red-500'
                           }`}>
-                            {transaction.category === 'emprunté' ? 'Emprunté' : 'Prêté'}
-                          </span>
-                        )}
+                            {formatCurrency(transaction.amount)}
+                          </p>
+                          {!isPaid && transaction.paidAmount > 0 && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Reste: {formatCurrency(remaining)}
+                            </p>
+                          )}
+                          {isPaid && (
+                            <p className="text-xs text-green-600 dark:text-green-500 mt-1">
+                              ✓ Payé
+                            </p>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="text-right ml-4">
-                        <p className={`text-lg font-bold ${
-                          isPaid
-                            ? 'text-gray-400 dark:text-gray-500 line-through'
-                            : isDebt
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}>
-                          {formatCurrency(transaction.amount)}
-                        </p>
-                        {!isPaid && transaction.paidAmount > 0 && (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Reste: {formatCurrency(remaining)}
-                          </p>
-                        )}
-                        {isPaid && (
-                          <p className="text-xs text-green-600 dark:text-green-400">
-                            ✓ Remboursé
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex space-x-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <button
-                        onClick={() => onEditTransaction(transaction)}
-                        className="flex-1 px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900 text-blue-600 dark:text-blue-200 rounded hover:bg-blue-100 dark:hover:bg-blue-800 transition"
-                      >
-                        ✏️ Modifier
-                      </button>
-                      <button
-                        onClick={() => setTransferringTransaction(transaction)}
-                        className="flex-1 px-3 py-2 text-sm bg-purple-50 dark:bg-purple-900 text-purple-600 dark:text-purple-200 rounded hover:bg-purple-100 dark:hover:bg-purple-800 transition"
-                        title="Transférer vers un autre contact"
-                      >
-                        🔄 Transférer
-                      </button>
-                      {!isPaid && (
+                      {/* Action Buttons - iOS 26 Style */}
+                      <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
                         <button
-                          onClick={() => setRepayingTransaction(transaction)}
-                          className="flex-1 px-3 py-2 text-sm bg-green-50 dark:bg-green-900 text-green-600 dark:text-green-200 rounded hover:bg-green-100 dark:hover:bg-green-800 transition"
+                          onClick={() => onEditTransaction(transaction)}
+                          className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
                         >
-                          💵 Remboursement
+                          Modifier
                         </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteTransaction(transaction.id)}
-                        className="px-3 py-2 text-sm bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-200 rounded hover:bg-red-100 dark:hover:bg-red-800 transition"
-                      >
-                        🗑️
-                      </button>
+                        <button
+                          onClick={() => setTransferringTransaction(transaction)}
+                          className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                          title="Transférer vers un autre contact"
+                        >
+                          Transférer
+                        </button>
+                        {!isPaid && (
+                          <button
+                            onClick={() => setRepayingTransaction(transaction)}
+                            className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                          >
+                            Payer
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteTransaction(transaction.id)}
+                          className="py-2 px-3 bg-gray-100 dark:bg-gray-700 text-red-600 dark:text-red-500 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -426,74 +428,76 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
         </>
       )}
 
-      {/* Savings Tab Content */}
+      {/* Savings Tab Content - iOS 26 Style */}
       {currentTab === 'savings' && (
         <>
           {/* Add Category Button */}
           {hasSavings && (
             <button
               onClick={() => setShowAddCategory(true)}
-              className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition font-medium mb-4"
+              className="w-full py-3 px-4 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-2xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium mb-4"
             >
-              ➕ Nouvelle catégorie
+              + Nouvelle catégorie
             </button>
           )}
 
           {/* Categories List */}
           {!hasSavings ? (
-            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
-              <div className="text-6xl mb-4">🏦</div>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
+              <div className="text-6xl mb-4 opacity-30">🏦</div>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
                 Aucune épargne pour {contact.name}
               </p>
               <button
                 onClick={() => setShowAddCategory(true)}
-                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-medium"
+                className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-6 py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
               >
-                ➕ Ouvrir un compte épargne
+                Ouvrir un compte épargne
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {categoriesWithBalances.map(category => (
                 <div
                   key={category.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition p-4"
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4"
                 >
-                  <div className="flex justify-between items-center">
+                  <div className="flex items-center justify-between">
                     <div
                       className="flex-1 cursor-pointer"
                       onClick={() => setSelectedCategory(category)}
                     >
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition">
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                         {category.name}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                         {category.operationCount} opération{category.operationCount !== 1 ? 's' : ''}
                       </p>
                     </div>
 
-                    <div
-                      className="text-right cursor-pointer"
-                      onClick={() => setSelectedCategory(category)}
-                    >
-                      <p className="text-xl font-bold text-blue-600">
-                        {formatCurrency(category.balance || 0)}
-                      </p>
-                    </div>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="text-right cursor-pointer"
+                        onClick={() => setSelectedCategory(category)}
+                      >
+                        <p className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                          {formatCurrency(category.balance || 0)}
+                        </p>
+                      </div>
 
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteCategory(category.id);
-                      }}
-                      className="ml-4 text-gray-400 hover:text-red-600 transition"
-                      title="Supprimer"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(category.id);
+                        }}
+                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        title="Supprimer"
+                      >
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -503,8 +507,8 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
           {/* Add Category Modal */}
           {showAddCategory && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-                <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md p-6">
+                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
                   Nouvelle catégorie d'épargne
                 </h2>
                 <form onSubmit={handleAddCategory}>
@@ -513,23 +517,23 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     placeholder="Nom de la catégorie"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mb-4 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl mb-4 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
                     autoFocus
                   />
-                  <div className="flex justify-end space-x-3">
+                  <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={() => {
                         setShowAddCategory(false);
                         setNewCategoryName('');
                       }}
-                      className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
+                      className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
                     >
                       Annuler
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                      className="flex-1 px-4 py-3 bg-gray-900 dark:bg-gray-200 text-white dark:text-gray-900 rounded-xl hover:bg-gray-800 dark:hover:bg-gray-300 transition-colors font-medium"
                     >
                       Ajouter
                     </button>
