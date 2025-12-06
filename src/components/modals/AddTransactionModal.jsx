@@ -101,8 +101,13 @@ function AddTransactionModal({ contacts, onClose, onAdd }) {
                 type="date"
                 value={formData.date}
                 onChange={(e) => handleChange('date', e.target.value)}
-                className="w-full h-[50px] px-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 [&::-webkit-date-and-time-value]:leading-[50px]"
-                style={{ WebkitAppearance: 'none', appearance: 'none' }}
+                className="w-full h-[50px] px-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                style={{
+                  WebkitAppearance: 'none',
+                  appearance: 'none',
+                  lineHeight: '50px',
+                  padding: '0 1rem'
+                }}
                 required
               />
             </div>
