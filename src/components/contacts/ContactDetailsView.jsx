@@ -3,10 +3,12 @@ import { formatCurrency, formatDate } from '../../utils/formatters';
 import { deleteTransaction, addRepayment, transferTransaction } from '../../services/transactionsService';
 import { updateContact } from '../../services/contactsService';
 import { subscribeToCategoriesByContact, addCategory, deleteCategory, addSavingsOperation, updateSavingsOperation } from '../../services/savingsService';
+import { processPayment, subscribeToPayments } from '../../services/paymentsService';
 import { showToast } from '../../utils/toast';
 import { exportContactTransactionsToPDF } from '../../utils/pdfExport';
 import { exportContactTransactionsToCSV } from '../../utils/csvExport';
 import AddRepaymentModal from '../modals/AddRepaymentModal';
+import AddPaymentModal from '../modals/AddPaymentModal';
 import EditContactModal from '../modals/EditContactModal';
 import TransferTransactionModal from '../modals/TransferTransactionModal';
 import SavingsCategoryDetails from '../savings/SavingsCategoryDetails';
@@ -19,6 +21,7 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
   const [repayingTransaction, setRepayingTransaction] = useState(null);
   const [showEditContact, setShowEditContact] = useState(false);
   const [transferringTransaction, setTransferringTransaction] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Savings states
   const [savingsCategories, setSavingsCategories] = useState([]);
@@ -29,9 +32,18 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
   const [operationCategory, setOperationCategory] = useState(null);
   const [editingOperation, setEditingOperation] = useState(null);
 
+  // Payment history
+  const [paymentHistory, setPaymentHistory] = useState([]);
+
   // Subscribe to savings categories for this contact
   useEffect(() => {
     const unsubscribe = subscribeToCategoriesByContact(userId, contact.id, setSavingsCategories);
+    return () => unsubscribe();
+  }, [userId, contact.id]);
+
+  // Subscribe to payment history for this contact
+  useEffect(() => {
+    const unsubscribe = subscribeToPayments(userId, contact.id, setPaymentHistory);
     return () => unsubscribe();
   }, [userId, contact.id]);
 
@@ -149,6 +161,22 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
     }
   };
 
+  const handleProcessPayment = async (paymentAmount) => {
+    try {
+      const result = await processPayment(userId, contact.id, paymentAmount);
+
+      if (result.remainingAmount > 0) {
+        showToast(`Encaissement enregistré. Reste ${formatCurrency(result.remainingAmount)} non affecté`, 'success');
+      } else {
+        showToast(`Encaissement de ${formatCurrency(paymentAmount)} traité avec succès`, 'success');
+      }
+
+      setShowPaymentModal(false);
+    } catch (error) {
+      showToast(error.message || 'Erreur lors du traitement', 'error');
+    }
+  };
+
   const totalOwed = contactTransactions
     .filter(t => !t.category || t.category === 'prêté' || t.category !== 'emprunté')
     .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
@@ -175,6 +203,11 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
 
   const totalSavingsBalance = categoriesWithBalances.reduce((sum, c) => sum + (c.balance || 0), 0);
   const hasSavings = savingsCategories.length > 0;
+
+  // Calculate unpaid debts for payment modal
+  const unpaidDebts = contactTransactions
+    .filter(t => t.type === 'debt' && (t.paidAmount || 0) < t.amount)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // If viewing category details
   if (selectedCategory) {
@@ -265,22 +298,28 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
         <div className="flex gap-2 mt-6">
           <button
             onClick={() => setCurrentTab('loans')}
-            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all ${
+            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
               currentTab === 'loans'
-                ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
             }`}
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
             Prêts
           </button>
           <button
             onClick={() => setCurrentTab('savings')}
-            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all ${
+            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
               currentTab === 'savings'
-                ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                ? 'bg-purple-600 text-white shadow-sm'
                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
             }`}
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
             Épargne {hasSavings && `(${savingsCategories.length})`}
           </button>
         </div>
@@ -309,22 +348,93 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
               </svg>
             </div>
 
+            {/* Action Buttons */}
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                disabled={unpaidDebts.length === 0}
+                className="flex-1 py-2.5 px-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Encaissement
+              </button>
+            </div>
+
             {/* Export Buttons */}
             <div className="flex gap-2">
               <button
                 onClick={handleExportPDF}
-                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-sm"
+                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-sm flex items-center justify-center gap-2"
               >
-                Exporter PDF
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                PDF
               </button>
               <button
                 onClick={handleExportCSV}
-                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-sm"
+                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-sm flex items-center justify-center gap-2"
               >
-                Exporter CSV
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                CSV
               </button>
             </div>
           </div>
+
+          {/* Payment History Section */}
+          {paymentHistory.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 mb-4">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                Historique des encaissements
+              </h3>
+              <div className="space-y-2">
+                {paymentHistory.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(payment.createdAt).toLocaleDateString('fr-FR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                      <p className="text-base font-semibold text-green-600 dark:text-green-500">
+                        {formatCurrency(payment.amount)}
+                      </p>
+                    </div>
+                    {payment.allocations && payment.allocations.length > 0 && (
+                      <div className="space-y-1 mt-2">
+                        {payment.allocations.map((allocation, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-xs">
+                            <p className="text-gray-600 dark:text-gray-400">
+                              → {allocation.description}
+                            </p>
+                            <p className="text-gray-600 dark:text-gray-400">
+                              {formatCurrency(allocation.amount)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {payment.remainingAmount > 0 && (
+                      <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
+                        Non affecté : {formatCurrency(payment.remainingAmount)}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Transactions List - iOS 26 Style */}
           {contactTransactions.length === 0 ? (
@@ -391,22 +501,31 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
                       <div className="flex gap-2 pt-3 border-t border-gray-100 dark:border-gray-700">
                         <button
                           onClick={() => onEditTransaction(transaction)}
-                          className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                          className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium flex items-center justify-center gap-1.5"
                         >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
                           Modifier
                         </button>
                         <button
                           onClick={() => setTransferringTransaction(transaction)}
-                          className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                          className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium flex items-center justify-center gap-1.5"
                           title="Transférer vers un autre contact"
                         >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                          </svg>
                           Transférer
                         </button>
                         {!isPaid && (
                           <button
                             onClick={() => setRepayingTransaction(transaction)}
-                            className="flex-1 py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                            className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center gap-1.5"
                           >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
                             Payer
                           </button>
                         )}
@@ -571,6 +690,16 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
           currentContactId={contact.id}
           onClose={() => setTransferringTransaction(null)}
           onTransfer={handleTransferTransaction}
+        />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <AddPaymentModal
+          contact={contact}
+          unpaidDebts={unpaidDebts}
+          onClose={() => setShowPaymentModal(false)}
+          onAdd={handleProcessPayment}
         />
       )}
     </div>
