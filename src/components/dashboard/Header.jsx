@@ -1,15 +1,4 @@
 function Header({ user, isDarkMode, toggleDarkMode, onSignOut }) {
-  const handleToggleDarkMode = () => {
-    console.log('=== HEADER: Button clicked! ===');
-    console.log('Header received isDarkMode:', isDarkMode);
-    console.log('Header received toggleDarkMode:', typeof toggleDarkMode, toggleDarkMode);
-    if (toggleDarkMode) {
-      toggleDarkMode();
-    } else {
-      console.error('toggleDarkMode is undefined!');
-    }
-  };
-
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-10">
       <div className="p-4">
@@ -24,7 +13,7 @@ function Header({ user, isDarkMode, toggleDarkMode, onSignOut }) {
           </div>
           <div className="flex items-center space-x-4">
             <button
-              onClick={handleToggleDarkMode}
+              onClick={toggleDarkMode}
               className="text-gray-600 dark:text-gray-300 hover:text-yellow-500 transition"
               title={isDarkMode ? "Mode clair" : "Mode sombre"}
             >

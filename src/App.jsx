@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
-import { useDarkMode } from './hooks/useDarkMode';
+import { useDarkMode } from './contexts/DarkModeContext';
 import LoginView from './components/auth/LoginView';
 import Dashboard from './components/dashboard/Dashboard';
 import { subscribeToContacts } from './services/contactsService';
