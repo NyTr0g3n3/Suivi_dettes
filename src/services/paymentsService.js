@@ -66,7 +66,7 @@ export const processPayment = async (userId, contactId, paymentAmount) => {
         ...doc.data()
       }))
       .filter(debt => {
-        const isDebt = !debt.category || debt.category === 'prêté';
+        const isDebt = !debt.category || debt.category === 'prêté' || debt.category !== 'emprunté';
         const hasBalance = (debt.paidAmount || 0) < debt.amount;
         return isDebt && hasBalance;
       });

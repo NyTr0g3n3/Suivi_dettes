@@ -70,7 +70,7 @@ function SwipeableTransactionCard({
 
   const remaining = transaction.amount - (transaction.paidAmount || 0);
   const isPaid = remaining === 0;
-  const isDebt = !transaction.category || transaction.category === 'prêté';
+  const isDebt = !transaction.category || transaction.category === 'prêté' || transaction.category !== 'emprunté';
 
   return (
     <div

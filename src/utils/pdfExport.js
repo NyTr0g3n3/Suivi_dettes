@@ -31,7 +31,7 @@ export const exportContactTransactionsToPDF = (contact, transactions) => {
 
   // Calculate balances
   const totalOwed = transactions
-    .filter(t => !t.category || t.category === 'prêté')
+    .filter(t => !t.category || t.category === 'prêté' || t.category !== 'emprunté')
     .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
 
   const totalBorrowed = transactions
@@ -70,7 +70,7 @@ export const exportContactTransactionsToPDF = (contact, transactions) => {
     sortedTransactions.forEach((transaction, index) => {
       const remaining = transaction.amount - (transaction.paidAmount || 0);
       const isPaid = remaining === 0;
-      const isDebt = !transaction.category || transaction.category === 'prêté';
+      const isDebt = !transaction.category || transaction.category === 'prêté' || transaction.category !== 'emprunté';
 
       checkNewPage(25);
 
