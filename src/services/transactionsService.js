@@ -1,5 +1,6 @@
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, updateDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { addRepaymentRecord } from './repaymentsHistoryService';
 
 export const subscribeToTransactions = (userId, callback) => {
   const q = query(
@@ -67,6 +68,9 @@ export const addRepayment = async (transactionId, amount) => {
       paidAmount: newPaidAmount,
       isPaid
     });
+
+    // Add repayment to history
+    await addRepaymentRecord(transactionId, amount, 'manual');
   } catch (error) {
     console.error("Error adding repayment:", error);
     throw error;

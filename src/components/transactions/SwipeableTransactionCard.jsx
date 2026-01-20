@@ -6,7 +6,8 @@ function SwipeableTransactionCard({
   onDelete,
   onPay,
   onEdit,
-  onTransfer
+  onTransfer,
+  onViewDetails
 }) {
   const [translateX, setTranslateX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -119,7 +120,15 @@ function SwipeableTransactionCard({
       >
         <div className="p-4">
           <div className="flex justify-between items-center">
-            <div className="flex-1 min-w-0 pr-3">
+            <div
+              className="flex-1 min-w-0 pr-3 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onViewDetails) {
+                  onViewDetails(transaction);
+                }
+              }}
+            >
               <p className="font-semibold text-gray-900 dark:text-gray-100 text-base mb-1 truncate">
                 {transaction.description}
               </p>
