@@ -49,17 +49,18 @@ export const subscribeToAllPayments = (userId, callback) => {
  */
 export const processPayment = async (userId, contactId, paymentAmount) => {
   try {
-    // Get all transactions for this contact, sorted by date (oldest first)
+    // Get all transactions for this contact
+    // Note: We don't use orderBy() here to avoid needing a Firestore composite index
     const transactionsQuery = query(
       collection(db, 'transactions'),
       where('userId', '==', userId),
-      where('contactId', '==', contactId),
-      orderBy('date', 'asc')
+      where('contactId', '==', contactId)
     );
 
     const transactionsSnapshot = await getDocs(transactionsQuery);
 
     // Filter to only unpaid debts (prêté or no category, where paidAmount < amount)
+    // and sort by date (oldest first)
     const unpaidDebts = transactionsSnapshot.docs
       .map(doc => ({
         id: doc.id,
@@ -69,7 +70,8 @@ export const processPayment = async (userId, contactId, paymentAmount) => {
         const isDebt = !debt.category || debt.category === 'prêté' || debt.category !== 'emprunté';
         const hasBalance = (debt.paidAmount || 0) < debt.amount;
         return isDebt && hasBalance;
-      });
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     if (unpaidDebts.length === 0) {
       throw new Error('Aucune dette à rembourser');
