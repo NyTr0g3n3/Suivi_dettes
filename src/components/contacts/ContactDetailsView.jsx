@@ -179,7 +179,7 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
   };
 
   const totalOwed = contactTransactions
-    .filter(t => !t.category || t.category === 'prêté' || t.category !== 'emprunté')
+    .filter(t => !t.category || t.category === 'prêté')
     .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
 
   const totalBorrowed = contactTransactions
@@ -209,7 +209,7 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
   const unpaidDebts = contactTransactions
     .filter(t => {
       // Only debts (prêté or no category) that are not fully paid
-      const isDebt = !t.category || t.category === 'prêté' || t.category !== 'emprunté';
+      const isDebt = !t.category || t.category === 'prêté';
       const hasBalance = (t.paidAmount || 0) < t.amount;
       return isDebt && hasBalance;
     })
