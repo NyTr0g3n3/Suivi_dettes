@@ -1,5 +1,6 @@
 import { collection, query, where, onSnapshot, addDoc, getDocs, writeBatch, doc, updateDoc, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { addRepaymentRecord } from './repaymentsHistoryService';
 
 /**
  * Subscribe to payment records for a specific contact
@@ -111,7 +112,7 @@ export const processPayment = async (userId, contactId, paymentAmount) => {
     await batch.commit();
 
     // Create payment record
-    await addDoc(collection(db, 'payments'), {
+    const paymentDocRef = await addDoc(collection(db, 'payments'), {
       userId,
       contactId,
       amount: paymentAmount,
@@ -119,6 +120,11 @@ export const processPayment = async (userId, contactId, paymentAmount) => {
       remainingAmount,
       createdAt: new Date().toISOString()
     });
+
+    // Add each allocation to repayment history
+    for (const allocation of allocations) {
+      await addRepaymentRecord(allocation.transactionId, allocation.amount, 'automatic', paymentDocRef.id);
+    }
 
     return {
       success: true,

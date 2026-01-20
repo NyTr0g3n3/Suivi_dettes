@@ -11,6 +11,7 @@ import AddRepaymentModal from '../modals/AddRepaymentModal';
 import AddPaymentModal from '../modals/AddPaymentModal';
 import EditContactModal from '../modals/EditContactModal';
 import TransferTransactionModal from '../modals/TransferTransactionModal';
+import TransactionDetailsModal from '../modals/TransactionDetailsModal';
 import SavingsCategoryDetails from '../savings/SavingsCategoryDetails';
 import AddSavingsOperationModal from '../modals/AddSavingsOperationModal';
 import EditSavingsOperationModal from '../modals/EditSavingsOperationModal';
@@ -23,6 +24,7 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
   const [showEditContact, setShowEditContact] = useState(false);
   const [transferringTransaction, setTransferringTransaction] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [viewingTransaction, setViewingTransaction] = useState(null);
 
   // Savings states
   const [savingsCategories, setSavingsCategories] = useState([]);
@@ -460,6 +462,7 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
                   onPay={setRepayingTransaction}
                   onEdit={onEditTransaction}
                   onTransfer={setTransferringTransaction}
+                  onViewDetails={setViewingTransaction}
                 />
               ))}
             </div>
@@ -620,6 +623,14 @@ function ContactDetailsView({ contact, transactions, contacts, onBack, onEditTra
           unpaidDebts={unpaidDebts}
           onClose={() => setShowPaymentModal(false)}
           onAdd={handleProcessPayment}
+        />
+      )}
+
+      {/* Transaction Details Modal */}
+      {viewingTransaction && (
+        <TransactionDetailsModal
+          transaction={viewingTransaction}
+          onClose={() => setViewingTransaction(null)}
         />
       )}
     </div>
