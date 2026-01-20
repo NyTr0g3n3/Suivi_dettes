@@ -24,7 +24,7 @@ function Dashboard({
     const contactTransactions = transactions.filter(t => t.contactId === contact.id);
 
     const totalOwed = contactTransactions
-      .filter(t => !t.category || t.category === 'prêté')
+      .filter(t => !t.category || t.category === 'prêté' || t.category !== 'emprunté')
       .reduce((sum, t) => sum + (t.amount - (t.paidAmount || 0)), 0);
 
     const totalBorrowed = contactTransactions
